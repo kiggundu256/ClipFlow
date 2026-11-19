@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole { OWNER ADMIN EDITOR MEMBER }
+enum SocialPlatform { TIKTOK INSTAGRAM YOUTUBE }
+enum PostStatus { DRAFT SCHEDULED QUEUED PUBLISHING PUBLISHED FAILED CANCELED }
+enum AttemptStatus { PENDING PROCESSING SUCCEEDED FAILED }
+enum SubscriptionStatus { INCOMPLETE TRIALING ACTIVE PAST_DUE CANCELED }
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String?
+  passwordHash   String?
+  emailVerifiedAt DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  memberships    Membership[]
+  notifications  Notification[]
+}
+
+model Workspace {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  memberships    Membership[]
+  clients        Client[]
+  socialAccounts SocialAccount[]
+  mediaAssets    MediaAsset[]
+  posts          Post[]
+  subscription   Subscription?
+  usageRecords   UsageRecord[]
+  auditEvents    AuditEvent[]
+}
+
+model Membership {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(MEMBER)
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@unique([userId, workspaceId])
+  @@index([workspaceId, role])
+}
+
+model Client {
+  id          String      @id @default(cuid())
+  workspaceId String
+  name        String
+  notes       String?
+  createdAt   DateTime    @default(now())
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  posts       Post[]
+  @@index([workspaceId])
+}
+
+model SocialAccount {
+  id                    String         @id @default(cuid())
+  workspaceId           String
+  platform              SocialPlatform
+  platformAccountId     String
+  username              String?
+  displayName            String?
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  scopes                String[]       @default([])
+  connectedAt           DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  workspace             Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  posts                 Post[]
+  @@unique([workspaceId, platform, platformAccountId])
+  @@index([workspaceId, platform])
+}
+
+model MediaAsset {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  fileName     String
+  mimeType     String
+  sizeBytes    BigInt
+  storageKey   String
+  durationSecs Float?
+  width        Int?
+  height       Int?
+  createdAt    DateTime  @default(now())
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  posts        Post[]
+  @@index([workspaceId, createdAt])
+}
+
+model Post {
+  id             String         @id @default(cuid())
+  workspaceId    String
+  clientId       String?
+  socialAccountId String?
+  mediaAssetId   String?
+  caption        String         @default("")
+  scheduledAt    DateTime?
+  publishedAt    DateTime?
+  status         PostStatus     @default(DRAFT)
+  platformData   Json?
+  lastError      String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  client         Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  socialAccount  SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  mediaAsset     MediaAsset?    @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  attempts       PublishingAttempt[]
+  @@index([workspaceId, status, scheduledAt])
+}
+
+model PublishingAttempt {
+  id             String         @id @default(cuid())
+  postId         String
+  status         AttemptStatus  @default(PENDING)
+  platformPostId String?
+  errorCode      String?
+  errorMessage   String?
+  startedAt      DateTime       @default(now())
+  finishedAt     DateTime?
+  post           Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@index([postId, startedAt])
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  workspaceId            String             @unique
+  provider               String?
+  providerCustomerId     String?
+  providerSubscriptionId String?            @unique
+  plan                   String             @default("FREE")
+  status                 SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  workspace              Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model UsageRecord {
+  id          String    @id @default(cuid())
+  workspaceId String
+  metric      String
+  quantity    Int        @default(1)
+  periodStart DateTime
+  createdAt   DateTime   @default(now())
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, metric, periodStart])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, readAt, createdAt])
+}
+
+model AuditEvent {
+  id          String    @id @default(cuid())
+  workspaceId String
+  actorUserId String?
+  action      String
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, createdAt])
+}

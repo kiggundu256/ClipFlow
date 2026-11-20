@@ -23,7 +23,7 @@ export default async function NewPostPage({ searchParams }: PageProps) {
       where: { workspaceId: membership.workspaceId },
       orderBy: { createdAt: "desc" },
       take: 100,
-      select: { id: true, fileName: true, mimeType: true, sizeBytes: true }
+      select: { id: true, fileName: true, mimeType: true }
     }),
     searchParams
   ]);

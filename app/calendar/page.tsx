@@ -43,7 +43,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       {params.scheduled === "1" && <div className="content-alert success">Your post has been added to the schedule. Automatic publishing is not active yet.</div>}
       {params.error === "time" && <div className="content-alert">Choose a valid future date and time at least one minute from now.</div>}
       {params.error === "post" && <div className="content-alert">That draft is no longer available to schedule. Refresh and try again.</div>}
-      <div className="calendar-notice"><Clock3 size={16}/><span>Times are converted from your browser's local time and stored as UTC. Scheduled posts are planning records only; no background publishing worker is active yet.</span></div>
+      <div className="calendar-notice"><Clock3 size={16}/><span>Times are converted from your browser&apos;s local time and stored as UTC. Scheduled posts are planning records only; no background publishing worker is active yet.</span></div>
       <div className="calendar-section-heading"><div><h2>Upcoming schedule</h2><p>{scheduled.length} scheduled {scheduled.length === 1 ? "post" : "posts"}</p></div></div>
       {scheduled.length === 0 ? <div className="library-empty compact"><CalendarDays size={26}/><b>Nothing scheduled yet.</b><span>Choose a date for one of your drafts below.</span></div> : <div className="calendar-agenda">{scheduled.map((post) => <article className="calendar-agenda-row" key={post.id}>
         <div className="calendar-date-tile"><CalendarDays size={17}/><b>{post.scheduledAt ? formatUtc(post.scheduledAt) : "Date pending"}</b></div>

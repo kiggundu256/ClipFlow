@@ -64,7 +64,8 @@ Google OAuth callback:
 - [x] Private media library and authenticated media delivery route.
 - [x] Draft editor with captions and hashtags.
 - [x] Multi-channel draft targeting through a normalized PostTarget relation.
-- [ ] Platform-specific preview and validation against publishing constraints.
+- [x] Live draft preview with selected channel destinations, attached media preview and preliminary YouTube/Instagram content checks.
+- [ ] Add final provider-specific media/caption validation before publishing is enabled.
 - [ ] Move media storage to a production object-storage adapter before horizontal scaling.
 
 ### 4. Calendar and publishing engine — NOT STARTED

@@ -73,6 +73,7 @@ Google OAuth callback:
 - [x] Content calendar agenda for upcoming scheduled posts and unscheduled drafts.
 - [x] Workspace-scoped scheduling action with future-time validation and atomic audit logging.
 - [x] Browser-local datetime converted to UTC before storage; schedule is clearly labeled as planning-only.
+- [x] CI pull-request filters include the calendar branch target so stacked scheduling work is validated.
 - [ ] Redis-backed background jobs and reliable retries.
 - [ ] Redis-backed background jobs and reliable retries.
 - [ ] Platform-specific publishing adapters.

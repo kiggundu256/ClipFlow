@@ -1,20 +1,38 @@
 name: CI
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: clipflow
+          POSTGRES_PASSWORD: clipflow_dev_password
+          POSTGRES_DB: clipflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clipflow -d clipflow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://clipflow:clipflow_dev_password@localhost:5432/clipflow?schema=public
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: npm install
       - run: npx prisma validate
+      - run: npx prisma migrate deploy
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run build
-        env:
-          DATABASE_URL: postgresql://clipflow:clipflow_dev_password@localhost:5432/clipflow?schema=public

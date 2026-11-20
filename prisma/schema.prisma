@@ -121,6 +121,7 @@ model SocialAccount {
   updatedAt             DateTime       @updatedAt
   workspace             Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   posts                 Post[]
+  postTargets            PostTarget[]
   @@unique([workspaceId, platform, platformAccountId])
   @@index([workspaceId, platform])
 }
@@ -159,8 +160,20 @@ model Post {
   client          Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
   mediaAsset      MediaAsset?    @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  targets         PostTarget[]
   attempts        PublishingAttempt[]
   @@index([workspaceId, status, scheduledAt])
+}
+
+model PostTarget {
+  id              String        @id @default(cuid())
+  postId          String
+  socialAccountId String
+  createdAt       DateTime      @default(now())
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  @@unique([postId, socialAccountId])
+  @@index([socialAccountId])
 }
 
 model PublishingAttempt {

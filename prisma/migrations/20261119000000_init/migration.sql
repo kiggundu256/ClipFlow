@@ -48,7 +48,7 @@ CREATE TABLE "SocialAccount" (
   "encryptedAccessToken" TEXT,
   "encryptedRefreshToken" TEXT,
   "tokenExpiresAt" TIMESTAMP(3),
-  "scopes" TEXT[] DEFAULT ARRAY[]::TEXT[],
+  "scopes" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
   "connectedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "SocialAccount_pkey" PRIMARY KEY ("id")

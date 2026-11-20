@@ -75,7 +75,6 @@ Google OAuth callback:
 - [x] Browser-local datetime converted to UTC before storage; schedule is clearly labeled as planning-only.
 - [x] CI pull-request filters include the calendar branch target so stacked scheduling work is validated.
 - [ ] Redis-backed background jobs and reliable retries.
-- [ ] Redis-backed background jobs and reliable retries.
 - [ ] Platform-specific publishing adapters.
 - [ ] Publishing history, failure states, and notifications.
 - [ ] Respect platform rate limits, account eligibility, and review requirements.

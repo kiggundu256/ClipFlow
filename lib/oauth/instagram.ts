@@ -123,16 +123,6 @@ export async function completeInstagramAuthorization(code: string, state: string
   const accountId = String(profile.user_id ?? profile.id ?? shortToken.user_id ?? "");
   if (!accountId) throw new Error("No eligible Instagram professional account was returned.");
 
-  const existing = await prisma.socialAccount.findUnique({
-    where: {
-      workspaceId_platform_platformAccountId: {
-        workspaceId: pending.workspaceId,
-        platform: "INSTAGRAM",
-        platformAccountId: accountId
-      }
-    }
-  });
-
   const encryptedRefreshToken = encryptToken(longToken.access_token);
   const expiresAt = new Date(Date.now() + longToken.expires_in * 1000);
 

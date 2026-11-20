@@ -7,11 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum WorkspaceRole { OWNER ADMIN EDITOR MEMBER }
-enum SocialPlatform { TIKTOK INSTAGRAM YOUTUBE }
-enum PostStatus { DRAFT SCHEDULED QUEUED PUBLISHING PUBLISHED FAILED CANCELED }
-enum AttemptStatus { PENDING PROCESSING SUCCEEDED FAILED }
-enum SubscriptionStatus { INCOMPLETE TRIALING ACTIVE PAST_DUE CANCELED }
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  MEMBER
+}
+enum SocialPlatform {
+  TIKTOK
+  INSTAGRAM
+  YOUTUBE
+}
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
+enum AttemptStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+enum SubscriptionStatus {
+  INCOMPLETE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
 
 model User {
   id              String       @id @default(cuid())

@@ -84,13 +84,21 @@ type GoogleChannelResponse = {
 export async function completeGoogleAuthorization(code: string, state: string) {
   const stateHash = hashState(state);
   const pending = await prisma.oAuthState.findUnique({ where: { stateHash } });
-  if (!pending || pending.provider !== "YOUTUBE" || pending.expiresAt <= new Date()) {
-    if (pending) await prisma.oAuthState.delete({ where: { id: pending.id } });
+  const now = new Date();
+  if (!pending || pending.provider !== "YOUTUBE" || pending.expiresAt <= now) {
+    if (pending && pending.expiresAt <= now) {
+      await prisma.oAuthState.deleteMany({ where: { id: pending.id } });
+    }
     throw new Error("This connection request has expired. Please try again.");
   }
 
-  // Consume the state before exchanging the authorization code to prevent replay.
-  await prisma.oAuthState.delete({ where: { id: pending.id } });
+  // Atomically consume the state so concurrent callbacks cannot both succeed.
+  const consumed = await prisma.oAuthState.deleteMany({
+    where: { id: pending.id, provider: "YOUTUBE", expiresAt: { gt: now } }
+  });
+  if (consumed.count !== 1) {
+    throw new Error("This connection request has already been used or has expired. Please try again.");
+  }
 
   const appUrl = requiredEnv("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
   const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {

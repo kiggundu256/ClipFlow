@@ -18,6 +18,15 @@ const ALLOWED_TYPES: Record<string, string> = {
   "image/webp": ".webp"
 };
 
+function hasValidFileSignature(type: string, bytes: Buffer) {
+  if (type === "image/jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (type === "image/png") return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (type === "image/webp") return bytes.length >= 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP";
+  if (type === "video/webm") return bytes.length >= 4 && bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  if (type === "video/mp4" || type === "video/quicktime") return bytes.length >= 12 && bytes.toString("ascii", 4, 8) === "ftyp";
+  return false;
+}
+
 function mediaDirectory() {
   return resolve(process.env.CLIPFLOW_MEDIA_DIR || join(process.cwd(), "private-media"));
 }
@@ -34,21 +43,37 @@ export async function uploadMedia(formData: FormData) {
   if (!extension) redirect("/media?error=type");
   if (file.size > MAX_UPLOAD_BYTES) redirect("/media?error=size");
 
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (!hasValidFileSignature(file.type, bytes)) redirect("/media?error=type");
+
   const storageKey = `${randomUUID()}${extension}`;
   const directory = mediaDirectory();
   const fullPath = join(directory, storageKey);
   await mkdir(directory, { recursive: true });
 
   try {
-    await writeFile(fullPath, Buffer.from(await file.arrayBuffer()), { flag: "wx", mode: 0o600 });
-    await prisma.mediaAsset.create({
-      data: {
-        workspaceId: membership.workspaceId,
-        fileName: file.name.slice(0, 240),
-        mimeType: file.type,
-        sizeBytes: BigInt(file.size),
-        storageKey
-      }
+    await writeFile(fullPath, bytes, { flag: "wx", mode: 0o600 });
+    await prisma.$transaction(async (tx) => {
+      const asset = await tx.mediaAsset.create({
+        data: {
+          workspaceId: membership.workspaceId,
+          fileName: file.name.slice(0, 240),
+          mimeType: file.type,
+          sizeBytes: BigInt(file.size),
+          storageKey
+        },
+        select: { id: true }
+      });
+      await tx.auditEvent.create({
+        data: {
+          workspaceId: membership.workspaceId,
+          actorUserId: user.id,
+          action: "media.uploaded",
+          targetType: "MediaAsset",
+          targetId: asset.id,
+          metadata: { mimeType: file.type, sizeBytes: file.size }
+        }
+      });
     });
   } catch (error) {
     await unlink(fullPath).catch(() => undefined);

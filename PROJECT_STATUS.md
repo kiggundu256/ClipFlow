@@ -36,7 +36,7 @@ Build priorities:
 - [x] Channel center and connected-account display.
 - [x] Initial PR validation passed after the JSX lint correction.
 - [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
-- [ ] Confirm CI passes on the latest hardening commit (`ebc25c22ce6498de79d97e93b34430b89a8ed749`).
+- [x] CI passed on the latest OAuth hardening and tracker checkpoint (GitHub Actions run #14, conclusion: success).
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
 - [ ] Test a real YouTube channel connection in local/staging.
 - [ ] Implement Meta OAuth for eligible Instagram professional accounts.

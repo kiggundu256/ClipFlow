@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation]
 
 jobs:
   validate:

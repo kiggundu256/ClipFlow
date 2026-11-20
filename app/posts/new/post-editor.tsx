@@ -12,7 +12,7 @@ type Account = {
   displayName: string | null;
   platformAccountId: string;
 };
-type Asset = { id: string; fileName: string; mimeType: string; sizeBytes: bigint };
+type Asset = { id: string; fileName: string; mimeType: string };
 
 export function PostEditor({ accounts, assets }: { accounts: Account[]; assets: Asset[] }) {
   const [caption, setCaption] = useState("");

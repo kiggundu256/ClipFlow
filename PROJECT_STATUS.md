@@ -37,7 +37,7 @@ Build priorities:
 - [x] Server-side access-token refresh before expiry, with reconnect errors when refresh is revoked.
 - [x] Channel center and connected-account display.
 - [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
-- [x] Verify CI for the YouTube multi-channel and token-refresh changes (run #15, success).\n- [ ] Verify CI for the Instagram OAuth integration.
+- [x] Verify CI for the YouTube multi-channel and token-refresh changes (run #15, success).\n- [ ] Verify CI for the Instagram OAuth integration and final channel-page copy fix.
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
 - [ ] Test a real YouTube channel connection in local/staging.\n- [ ] Configure Meta app and test a real Instagram Professional account connection.
 - [x] Implement Meta Instagram Login OAuth for eligible Instagram professional accounts.

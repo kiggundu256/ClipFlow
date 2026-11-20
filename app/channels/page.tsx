@@ -44,7 +44,7 @@ export default async function ChannelsPage({ searchParams }: PageProps) {
       </article>
       <article className="provider-card">
         <div className="provider-icon instagram"><Instagram size={23}/></div>
-        <div className="provider-copy"><h2>Instagram</h2><p>Connect eligible professional Instagram accounts through Meta's official authorization flow.</p><span className="provider-status pending">Meta app credentials and permissions required</span>
+        <div className="provider-copy"><h2>Instagram</h2><p>Connect eligible professional Instagram accounts through the official Meta authorization flow.</p><span className="provider-status pending">Meta app credentials and permissions required</span>
           {instagramAccounts.map((account) => <div className="connected-account" key={account.id}><CheckCircle2 size={13}/><span>{account.displayName || account.username || "Instagram account"}</span><small>Connected</small></div>)}
         </div>
         <span className="provider-coming">Next integration</span>

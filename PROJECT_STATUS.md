@@ -31,12 +31,13 @@ Build priorities:
 
 - [x] Persisted expiring, single-use OAuth state linked to user and workspace.
 - [x] Google OAuth authorization and callback for YouTube.
-- [x] YouTube channel lookup and workspace-scoped account upsert.
+- [x] Discover and connect every YouTube channel returned for the authorized Google account, including paginated results.
+- [x] Workspace-scoped social account upserts and audit events.
 - [x] AES-256-GCM token encryption using a deployment-managed 32-byte key.
+- [x] Server-side access-token refresh before expiry, with reconnect errors when refresh is revoked.
 - [x] Channel center and connected-account display.
-- [x] Initial PR validation passed after the JSX lint correction.
 - [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
-- [x] CI passed on the latest OAuth hardening and tracker checkpoint (GitHub Actions run #14, conclusion: success).
+- [ ] Verify CI for the latest multi-channel and token-refresh changes.
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
 - [ ] Test a real YouTube channel connection in local/staging.
 - [ ] Implement Meta OAuth for eligible Instagram professional accounts.

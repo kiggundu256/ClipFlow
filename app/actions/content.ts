@@ -138,3 +138,43 @@ export async function createDraft(formData: FormData) {
   revalidatePath("/");
   redirect("/posts?created=1");
 }
+
+
+export async function scheduleDraft(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const membership = user.memberships[0];
+  if (!membership) redirect("/register");
+
+  const postId = String(formData.get("postId") ?? "").trim();
+  const scheduledAtRaw = String(formData.get("scheduledAt") ?? "").trim();
+  const scheduledAt = new Date(scheduledAtRaw);
+  if (!postId || !scheduledAtRaw || Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now() + 60_000) {
+    redirect("/calendar?error=time");
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.post.updateMany({
+      where: { id: postId, workspaceId: membership.workspaceId, status: "DRAFT", scheduledAt: null },
+      data: { scheduledAt, status: "SCHEDULED" }
+    });
+    if (result.count !== 1) return false;
+    await tx.auditEvent.create({
+      data: {
+        workspaceId: membership.workspaceId,
+        actorUserId: user.id,
+        action: "post.scheduled",
+        targetType: "Post",
+        targetId: postId,
+        metadata: { scheduledAt: scheduledAt.toISOString(), queueEnabled: false }
+      }
+    });
+    return true;
+  });
+  if (!updated) redirect("/calendar?error=post");
+
+  revalidatePath("/calendar");
+  revalidatePath("/posts");
+  revalidatePath("/");
+  redirect("/calendar?scheduled=1");
+}

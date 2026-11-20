@@ -18,7 +18,7 @@ export function SchedulePostForm({ postId }: { postId: string }) {
     <input type="hidden" name="postId" value={postId}/>
     <input type="hidden" name="scheduledAt" ref={isoDateRef}/>
     <label className="sr-only" htmlFor={`schedule-${postId}`}>Choose date and time in your local timezone</label>
-    <input id={`schedule-${postId}`} ref={localDateRef} type="datetime-local" required min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}/>
+    <input id={`schedule-${postId}`} ref={localDateRef} type="datetime-local" required/>
     <button className="secondary-button" type="submit"><CalendarClock size={14}/> Schedule</button>
   </form>;
 }

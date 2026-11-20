@@ -37,9 +37,10 @@ Build priorities:
 - [x] Server-side access-token refresh before expiry, with reconnect errors when refresh is revoked.
 - [x] Channel center and connected-account display.
 - [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
-- [x] Verify CI for the YouTube multi-channel and token-refresh changes (run #15, success).\n- [ ] Verify CI for the Instagram OAuth integration and final channel-page copy fix.
+- [x] Verify CI for YouTube and Instagram OAuth integration (run #24, success: Prisma validation, migration deploy, typecheck, lint, and production build).
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
-- [ ] Test a real YouTube channel connection in local/staging.\n- [ ] Configure Meta app and test a real Instagram Professional account connection.
+- [ ] Test a real YouTube channel connection in local/staging.
+- [ ] Configure Meta app and test a real Instagram Professional account connection.
 - [x] Implement Meta Instagram Login OAuth for eligible Instagram professional accounts.
 - [ ] Implement TikTok Login Kit and Content Posting API after required permissions are confirmed.
 - Current PR: https://github.com/kiggundu256/ClipFlow/pull/2
@@ -48,7 +49,9 @@ Build priorities:
 Required server environment variables for YouTube and Instagram:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `META_APP_ID` and `META_APP_SECRET` (Instagram Login)\n- `TOKEN_ENCRYPTION_KEY` (base64-encoded 32-byte key)
+- `META_APP_ID` and `META_APP_SECRET` (Instagram Login)
+- `TOKEN_ENCRYPTION_KEY` (base64-encoded 32-byte key)
+- `CLIPFLOW_MEDIA_DIR` (persistent private media directory)
 - `NEXT_PUBLIC_APP_URL`
 
 Google OAuth callback:

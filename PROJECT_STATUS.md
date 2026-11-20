@@ -1,6 +1,6 @@
 # ClipFlow Project Status
 
-Last updated: 2026-11-20
+Last updated: 2026-11-21
 
 This file is the persistent build checkpoint. Keep it updated as milestones are completed.
 
@@ -55,12 +55,14 @@ Google OAuth callback:
 - Local: `http://localhost:3000/api/oauth/google/callback`
 - Production: `https://YOUR_DOMAIN/api/oauth/google/callback`
 
-### 3. Content management — NOT STARTED
+### 3. Content management — IN PROGRESS
 
-- [ ] Media upload and private storage.
-- [ ] Draft editor with captions and hashtags.
-- [ ] Link content to one or more connected channels.
-- [ ] Preview and validation against platform constraints.
+- [x] Private workspace-scoped media upload for MP4, MOV, WebM, JPEG, PNG and WebP (100 MB cap; file-signature validation).
+- [x] Private media library and authenticated media delivery route.
+- [x] Draft editor with captions and hashtags.
+- [x] Multi-channel draft targeting through a normalized PostTarget relation.
+- [ ] Platform-specific preview and validation against publishing constraints.
+- [ ] Move media storage to a production object-storage adapter before horizontal scaling.
 
 ### 4. Calendar and publishing engine — NOT STARTED
 

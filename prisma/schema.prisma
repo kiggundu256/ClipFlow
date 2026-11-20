@@ -52,6 +52,7 @@ model User {
   memberships     Membership[]
   notifications   Notification[]
   sessions        Session[]
+  oauthStates     OAuthState[]
 }
 
 model Session {
@@ -79,6 +80,7 @@ model Workspace {
   subscription   Subscription?
   usageRecords   UsageRecord[]
   auditEvents    AuditEvent[]
+  oauthStates    OAuthState[]
 }
 
 model Membership {
@@ -221,4 +223,19 @@ model AuditEvent {
   createdAt   DateTime  @default(now())
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   @@index([workspaceId, createdAt])
+}
+
+model OAuthState {
+  id          String   @id @default(cuid())
+  stateHash   String   @unique
+  provider    String
+  userId      String
+  workspaceId String
+  codeVerifier String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
+  @@index([userId, workspaceId, provider])
 }

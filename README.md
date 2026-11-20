@@ -47,3 +47,7 @@ Create a Meta app and add the Instagram product with Instagram Login. Register t
 Set `META_APP_ID` and `META_APP_SECRET` in the server environment. ClipFlow requests `instagram_business_basic` and `instagram_business_content_publish`, and supports Instagram Business and Creator accounts. A Facebook Page is not required for this Instagram Login flow. Before connecting accounts belonging to other people in production, complete Meta's required app review and access verification for the requested permissions.
 
 Instagram access tokens are exchanged for long-lived tokens and refreshed server-side before expiry. The shared `TOKEN_ENCRYPTION_KEY` protects stored tokens.
+
+## Content and media storage
+
+The content editor saves workspace-scoped drafts and supports selecting multiple connected channels. The media library currently stores uploads on the application server in a private directory (default: `./private-media`). Set `CLIPFLOW_MEDIA_DIR` to a persistent absolute path in production, keep that directory outside the public web root, restrict filesystem permissions, and include it in encrypted backups. The first upload release accepts MP4, MOV, WebM, JPEG, PNG and WebP files up to 100 MB. Object storage and resumable large uploads are follow-on infrastructure work; do not run multiple app instances with local media storage unless they share a persistent volume.

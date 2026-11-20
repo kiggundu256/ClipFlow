@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { extname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";

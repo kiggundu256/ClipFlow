@@ -153,22 +153,25 @@ export async function scheduleDraft(formData: FormData) {
     redirect("/calendar?error=time");
   }
 
-  const result = await prisma.post.updateMany({
-    where: { id: postId, workspaceId: membership.workspaceId, status: "DRAFT", scheduledAt: null },
-    data: { scheduledAt, status: "SCHEDULED" }
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.post.updateMany({
+      where: { id: postId, workspaceId: membership.workspaceId, status: "DRAFT", scheduledAt: null },
+      data: { scheduledAt, status: "SCHEDULED" }
+    });
+    if (result.count !== 1) return false;
+    await tx.auditEvent.create({
+      data: {
+        workspaceId: membership.workspaceId,
+        actorUserId: user.id,
+        action: "post.scheduled",
+        targetType: "Post",
+        targetId: postId,
+        metadata: { scheduledAt: scheduledAt.toISOString(), queueEnabled: false }
+      }
+    });
+    return true;
   });
-  if (result.count !== 1) redirect("/calendar?error=post");
-
-  await prisma.auditEvent.create({
-    data: {
-      workspaceId: membership.workspaceId,
-      actorUserId: user.id,
-      action: "post.scheduled",
-      targetType: "Post",
-      targetId: postId,
-      metadata: { scheduledAt: scheduledAt.toISOString(), queueEnabled: false }
-    }
-  });
+  if (!updated) redirect("/calendar?error=post");
 
   revalidatePath("/calendar");
   revalidatePath("/posts");

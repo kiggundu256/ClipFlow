@@ -25,3 +25,16 @@ This repository is the source of truth. TikTok public Direct Post is not enabled
 ## Safety
 
 Never commit `.env`, platform access tokens, database passwords, or production secrets. Use GitHub Actions secrets and your deployment provider's secret store.
+
+## YouTube OAuth setup
+
+Create a Google OAuth 2.0 Web application client and register this exact redirect URI:
+`http://localhost:3000/api/oauth/google/callback` for local development, plus your production callback URL after deployment.
+
+Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in your local environment and deployment secret store. Generate the encryption key with:
+
+```bash
+openssl rand -base64 32
+```
+
+Enable the YouTube Data API v3 in the Google Cloud project. The initial integration requests YouTube read access and upload permission. Do not commit real credentials or encryption keys.

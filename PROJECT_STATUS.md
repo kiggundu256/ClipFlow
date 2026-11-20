@@ -34,7 +34,9 @@ Build priorities:
 - [x] YouTube channel lookup and workspace-scoped account upsert.
 - [x] AES-256-GCM token encryption using a deployment-managed 32-byte key.
 - [x] Channel center and connected-account display.
-- [ ] Confirm CI passes on PR #2.
+- [x] Initial PR validation passed after the JSX lint correction.
+- [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
+- [ ] Confirm CI passes on the latest hardening commit (`ebc25c22ce6498de79d97e93b34430b89a8ed749`).
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
 - [ ] Test a real YouTube channel connection in local/staging.
 - [ ] Implement Meta OAuth for eligible Instagram professional accounts.

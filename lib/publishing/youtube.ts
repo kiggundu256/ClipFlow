@@ -190,7 +190,7 @@ async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: 
           if (recoveryAttempts > MAX_RECOVERY_ATTEMPTS) {
             throw uploadError("YouTube did not advance the upload. Check the channel before retrying.");
           }
-          const status = await queryUploadStatus(sessionUrl, accessToken, size);
+          const status = await confirmedUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
           if (status.videoId) return status.videoId;
           offset = status.offset;
         } else {
@@ -210,7 +210,7 @@ async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: 
         if (recoveryAttempts > MAX_RECOVERY_ATTEMPTS) {
           throw uploadError("YouTube's upload result could not be confirmed after repeated server errors. Check the channel before retrying.");
         }
-        const status = await queryUploadStatus(sessionUrl, accessToken, size);
+        const status = await confirmedUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
         if (status.videoId) return status.videoId;
         offset = status.offset;
         continue;

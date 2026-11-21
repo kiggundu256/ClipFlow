@@ -27,7 +27,7 @@ enum PostStatus {
   FAILED
   CANCELED
 }
-enum AttemptStatus {
+enum PostTargetStatus {\n  PENDING\n  QUEUED\n  PUBLISHING\n  PUBLISHED\n  FAILED\n  CANCELED\n}\nenum AttemptStatus {
   PENDING
   PROCESSING
   SUCCEEDED

@@ -5,7 +5,7 @@ import IORedis from "ioredis";
 import { access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { prisma } from "../lib/prisma";
-import { PUBLISHING_QUEUE_NAME, type PublishTargetJob } from "../lib/publishing/queue";
+import { PUBLISHING_QUEUE_NAME, publishingQueue, publishingConnection, type PublishTargetJob } from "../lib/publishing/queue";
 import { getPublishingAdapter } from "../lib/publishing/adapters";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";

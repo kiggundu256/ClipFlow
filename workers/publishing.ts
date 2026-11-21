@@ -19,7 +19,46 @@ if (process.env.CLIPFLOW_PUBLISHING_ENABLED !== "true") {
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null, enableReadyCheck: true });
 const mediaDirectory = resolve(process.env.CLIPFLOW_MEDIA_DIR || join(process.cwd(), "private-media"));
 
-async function enqueueDueTargets() {
+async function recoverInterruptedTargets() {
+  // Do not automatically retry an interrupted provider request: the platform may
+  // have accepted it just before the worker stopped. Mark it for reconciliation.
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+  const stale = await prisma.postTarget.findMany({
+    where: { status: "PUBLISHING", updatedAt: { lt: cutoff } },
+    include: { post: true },
+    take: 100
+  });
+
+  for (const target of stale) {
+    const message = "Publishing was interrupted and the platform result is unknown. Check the destination account before retrying.";
+    await prisma.$transaction(async (tx) => {
+      const changed = await tx.postTarget.updateMany({
+        where: { id: target.id, status: "PUBLISHING", updatedAt: { lt: cutoff } },
+        data: { status: "FAILED", lastError: message }
+      });
+      if (changed.count !== 1) return;
+      await tx.publishingAttempt.updateMany({
+        where: { postTargetId: target.id, status: "PROCESSING" },
+        data: { status: "FAILED", errorCode: "WORKER_INTERRUPTED", errorMessage: message, finishedAt: new Date() }
+      });
+      await tx.post.update({
+        where: { id: target.postId },
+        data: { status: "FAILED", lastError: message }
+      });
+      await tx.auditEvent.create({
+        data: {
+          workspaceId: target.post.workspaceId,
+          action: "post.target_interrupted",
+          targetType: "PostTarget",
+          targetId: target.id,
+          metadata: { code: "WORKER_INTERRUPTED" }
+        }
+      });
+    });
+  }
+}
+
+async function enqueueDueTargets() {\n  await recoverInterruptedTargets();
   const now = new Date();
   const duePosts = await prisma.post.findMany({
     where: { status: "SCHEDULED", scheduledAt: { lte: now } },
@@ -94,9 +133,6 @@ async function publishTarget(job: Job<PublishTargetJob>) {
   if (!target || target.status === "PUBLISHED" || target.status === "CANCELED") return;
 
   const adapter = getPublishingAdapter(target.socialAccount.platform);
-  if (!adapter) {
-    throw new UnrecoverableError(`No verified ${target.socialAccount.platform} publishing adapter is configured.`);
-  }
 
   const claimed = await prisma.postTarget.updateMany({
     where: { id: target.id, status: "QUEUED" },
@@ -109,6 +145,7 @@ async function publishTarget(job: Job<PublishTargetJob>) {
   });
 
   try {
+    if (!adapter) throw new UnrecoverableError(`No verified ${target.socialAccount.platform} publishing adapter is configured.`);
     let accessToken: string;
     if (target.socialAccount.platform === "YOUTUBE") {
       accessToken = await getValidGoogleAccessToken(target.socialAccountId);
@@ -205,7 +242,7 @@ worker.on("failed", async (job, error) => {
     });
     const failures = await tx.postTarget.count({ where: { postId: target.postId, status: "FAILED" } });
     if (remaining === 0) {
-      await tx.post.update({ where: { id: target.postId }, data: { status: failures ? "FAILED" : "PUBLISHED" } });
+      await tx.post.update({ where: { id: target.postId }, data: { status: failures ? "FAILED" : "PUBLISHED", lastError: failures ? message : null } });
     }
     await tx.auditEvent.create({
       data: {

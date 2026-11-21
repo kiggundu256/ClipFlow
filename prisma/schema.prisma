@@ -181,12 +181,14 @@ model PostTarget {
   publishedAt     DateTime?
   lastError       String?
   createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
   socialAccount   SocialAccount    @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
   attempts        PublishingAttempt[]
   @@unique([postId, socialAccountId])
   @@index([socialAccountId])
   @@index([status, createdAt])
+  @@index([status, updatedAt])
 }
 
 model PublishingAttempt {

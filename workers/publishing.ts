@@ -78,14 +78,8 @@ async function enqueueDueTargets() {
     orderBy: { createdAt: "asc" }
   });
 
-  const { Queue } = await import("bullmq");
-  const queue = new Queue<PublishTargetJob>(PUBLISHING_QUEUE_NAME, { connection });
-  try {
-    for (const target of queuedTargets) {
-      await queue.add("publish-target", { targetId: target.id }, { jobId: `publish-${target.id}` });
-    }
-  } finally {
-    await queue.close();
+  for (const target of queuedTargets) {
+    await publishingQueue.add("publish-target", { targetId: target.id }, { jobId: `publish-${target.id}` });
   }
 }
 
@@ -229,9 +223,7 @@ worker.on("error", (error) => {
   process.stderr.write(`Publishing worker error: ${error.message}\n`);
 });
 
-const { Queue } = await import("bullmq");
-const schedulerQueue = new Queue(PUBLISHING_QUEUE_NAME, { connection });
-await schedulerQueue.add("scan-scheduled-posts", {}, {
+await publishingQueue.add("scan-scheduled-posts", {}, {
   repeat: { every: 15_000 },
   jobId: "scan-scheduled-posts"
 });
@@ -239,7 +231,7 @@ await schedulerQueue.add("scan-scheduled-posts", {}, {
 process.on("SIGTERM", async () => {
   await worker.close();
   await schedulerQueue.close();
-  await connection.quit();
+  await publishingQueue.close();\n  await connection.quit();
   await prisma.$disconnect();
 });
 process.on("SIGINT", async () => {

@@ -5,7 +5,7 @@ import IORedis from "ioredis";
 import { access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { prisma } from "../lib/prisma";
-import { PUBLISHING_QUEUE_NAME, publishingQueue, publishingConnection, type PublishTargetJob } from "../lib/publishing/queue";
+import { PUBLISHING_QUEUE_NAME, publishingQueue, type PublishTargetJob } from "../lib/publishing/queue";
 import { getPublishingAdapter } from "../lib/publishing/adapters";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";
@@ -230,13 +230,14 @@ await publishingQueue.add("scan-scheduled-posts", {}, {
 
 process.on("SIGTERM", async () => {
   await worker.close();
-  await schedulerQueue.close();
-  await publishingQueue.close();\n  await connection.quit();
+  await publishingQueue.close();
+  await connection.quit();
   await prisma.$disconnect();
 });
 process.on("SIGINT", async () => {
   await worker.close();
-  await schedulerQueue.close();
+
+  await publishingQueue.close();
   await connection.quit();
   await prisma.$disconnect();
 });

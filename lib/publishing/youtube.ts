@@ -108,7 +108,7 @@ function confirmedVideo(data: YouTubeVideoResponse, expectedChannelId: string) {
 
 async function confirmedUploadStatus(sessionUrl: string, accessToken: string, size: number, expectedChannelId: string) {
   try {
-    const status = await confirmedUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
+    const status = await queryUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
     if (status.videoId) return { offset: status.offset, videoId: status.videoId };
     return status;
   } catch (error) {
@@ -131,8 +131,7 @@ async function queryUploadStatus(sessionUrl: string, accessToken: string, size: 
   if (response.status === 308) return { offset: uploadedOffset(response), videoId: null };
   if (response.status === 200 || response.status === 201) {
     const data = await response.json() as YouTubeVideoResponse;
-    if (data.id) return { offset: size, videoId: data.id };
-    throw uploadError("YouTube completed the upload but did not return a video ID. Check the channel before retrying.");
+    return { offset: size, videoId: confirmedVideo(data, expectedChannelId) };
   }
   if (response.status === 404 || response.status === 410) {
     throw uploadError("The YouTube upload session expired. The result may be unknown; check the channel before retrying.");
@@ -171,7 +170,7 @@ async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: 
           throw uploadError("The YouTube upload connection was interrupted repeatedly. Check the channel before retrying to avoid a duplicate video.");
         }
         try {
-          const status = await queryUploadStatus(sessionUrl, accessToken, size);
+          const status = await confirmedUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
           if (status.videoId) return status.videoId;
           offset = status.offset;
           continue;
@@ -203,8 +202,7 @@ async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: 
 
       if (response.status === 200 || response.status === 201) {
         const data = await response.json() as YouTubeVideoResponse;
-        if (data.id) return data.id;
-        throw uploadError("YouTube accepted the upload but returned no video ID. Check the channel before retrying.");
+        return confirmedVideo(data, expectedChannelId);
       }
 
       if (response.status >= 500 || response.status === 429) {

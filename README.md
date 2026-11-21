@@ -37,7 +37,7 @@ Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in yo
 openssl rand -base64 32
 ```
 
-Enable the YouTube Data API v3 in the Google Cloud project. The integration requests YouTube read access and upload permission. Do not commit real credentials or encryption keys.
+Enable the YouTube Data API v3 in the Google Cloud project. The integration requests YouTube read access and `https://www.googleapis.com/auth/youtube.upload`. Existing connected channels must have this upload scope; disconnect and reconnect if ClipFlow reports missing upload permission. Do not commit real credentials or encryption keys.
 
 ## Instagram Login setup
 
@@ -58,4 +58,12 @@ The publishing foundation uses BullMQ with Redis and PostgreSQL. The standalone 
 
 Start Redis with `docker compose up -d redis`. Configure `REDIS_URL` for both the web app and worker. The worker command is `npm run worker:publish` (the script runs with Node's React Server condition so server-only modules remain unavailable to browser bundles). Run it as a separate supervised process (for example, a systemd service or a dedicated container) alongside the Next.js web process. Redis persistence is enabled in the included Compose configuration.
 
-**Keep `CLIPFLOW_PUBLISHING_ENABLED=false` for now.** The queue and worker foundation is in place, but provider publishing adapters are intentionally not registered until their official upload flows and permissions are implemented and tested. Enabling the worker before that point will fail unsupported destination jobs safely; it will not pretend that posts were published. Scheduled posts remain planning records until a verified adapter is available.
+### YouTube publishing adapter
+
+The YouTube adapter uploads video files through the official YouTube Data API v3 resumable-upload protocol. It uses bounded 8 MiB chunks, checks upload progress after interrupted requests, and records the returned YouTube video ID against the destination. It publishes videos only (not image posts). The title is derived from the first caption line, the full caption becomes the description, hashtags are converted into tags, and the default category is People & Blogs (22).
+
+Set `YOUTUBE_DEFAULT_PRIVACY_STATUS` to `private`, `unlisted`, or `public`; it defaults to `unlisted` for safe first tests. `YOUTUBE_CATEGORY_ID` defaults to `22`. Per-post privacy controls and YouTube processing-status polling are follow-on work. A successful API upload means YouTube returned a video ID; it does not guarantee processing has finished or that the video is already publicly viewable.
+
+The worker must remain disabled until Google OAuth credentials, YouTube Data API v3, Redis, PostgreSQL, persistent media storage, and the YouTube upload scope are configured. Start with an unlisted test video and confirm it appears in the connected channel before enabling scheduled publishing in production. If an upload's final outcome cannot be confirmed, ClipFlow stops automatic retries and marks it for manual channel reconciliation rather than risking duplicate uploads.
+
+Instagram and TikTok adapters are not registered yet.

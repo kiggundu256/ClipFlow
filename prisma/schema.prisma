@@ -27,7 +27,14 @@ enum PostStatus {
   FAILED
   CANCELED
 }
-enum PostTargetStatus {\n  PENDING\n  QUEUED\n  PUBLISHING\n  PUBLISHED\n  FAILED\n  CANCELED\n}\nenum AttemptStatus {
+enum PostTargetStatus {
+  PENDING
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}\nenum AttemptStatus {
   PENDING
   PROCESSING
   SUCCEEDED
@@ -166,19 +173,25 @@ model Post {
 }
 
 model PostTarget {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   postId          String
   socialAccountId String
-  createdAt       DateTime      @default(now())
-  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
-  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  status          PostTargetStatus @default(PENDING)
+  publishedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime         @default(now())
+  post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount    @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  attempts        PublishingAttempt[]
   @@unique([postId, socialAccountId])
   @@index([socialAccountId])
+  @@index([status, createdAt])
 }
 
 model PublishingAttempt {
   id             String         @id @default(cuid())
   postId         String
+  postTargetId   String?
   status         AttemptStatus  @default(PENDING)
   platformPostId String?
   errorCode      String?
@@ -186,7 +199,9 @@ model PublishingAttempt {
   startedAt      DateTime       @default(now())
   finishedAt     DateTime?
   post           Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postTarget     PostTarget?    @relation(fields: [postTargetId], references: [id], onDelete: SetNull)
   @@index([postId, startedAt])
+  @@index([postTargetId, startedAt])
 }
 
 model Subscription {

@@ -58,7 +58,8 @@ async function recoverInterruptedTargets() {
   }
 }
 
-async function enqueueDueTargets() {\n  await recoverInterruptedTargets();
+async function enqueueDueTargets() {
+  await recoverInterruptedTargets();
   const now = new Date();
   const duePosts = await prisma.post.findMany({
     where: { status: "SCHEDULED", scheduledAt: { lte: now } },

@@ -13,7 +13,7 @@ export const publishingConnection = new IORedis(redisUrl, {
   enableReadyCheck: true
 });
 
-export type PublishTargetJob = { targetId: string };
+export type PublishTargetJob = { targetId: string } | { scan: true };
 
 export const publishingQueue = new Queue<PublishTargetJob>(PUBLISHING_QUEUE_NAME, {
   connection: publishingConnection,

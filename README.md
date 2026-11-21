@@ -51,3 +51,11 @@ Instagram access tokens are exchanged for long-lived tokens and refreshed server
 ## Content and media storage
 
 The content editor saves workspace-scoped drafts and supports selecting multiple connected channels. The media library currently stores uploads on the application server in a private directory (default: `./private-media`). Set `CLIPFLOW_MEDIA_DIR` to a persistent absolute path in production, keep that directory outside the public web root, restrict filesystem permissions, and include it in encrypted backups. The first upload release accepts MP4, MOV, WebM, JPEG, PNG and WebP files up to 100 MB. Object storage and resumable large uploads are follow-on infrastructure work; do not run multiple app instances with local media storage unless they share a persistent volume.
+
+## Background publishing engine
+
+The publishing foundation uses BullMQ with Redis and PostgreSQL. The standalone worker scans scheduled posts every 15 seconds, atomically moves due posts into the queue, and creates one durable queue job per destination account. Queue job IDs are deterministic so a worker restart between the database update and queue insertion can be recovered on the next scan. Each destination has its own status and publishing-attempt history; transient provider errors use exponential retry.
+
+Start Redis with `docker compose up -d redis`. Configure `REDIS_URL` for both the web app and worker. The worker command is `npm run worker:publish` (the script runs with Node's React Server condition so server-only modules remain unavailable to browser bundles). Run it as a separate supervised process (for example, a systemd service or a dedicated container) alongside the Next.js web process. Redis persistence is enabled in the included Compose configuration.
+
+**Keep `CLIPFLOW_PUBLISHING_ENABLED=false` for now.** The queue and worker foundation is in place, but provider publishing adapters are intentionally not registered until their official upload flows and permissions are implemented and tested. Enabling the worker before that point will fail unsupported destination jobs safely; it will not pretend that posts were published. Scheduled posts remain planning records until a verified adapter is available.

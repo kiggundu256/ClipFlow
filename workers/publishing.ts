@@ -168,6 +168,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
     const result = await adapter.publish({
       platformAccountId: target.socialAccount.platformAccountId,
       accessToken,
+      scopes: target.socialAccount.scopes,
       caption: target.post.caption,
       mediaPath,
       mimeType: target.post.mediaAsset?.mimeType ?? null,

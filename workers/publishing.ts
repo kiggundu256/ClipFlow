@@ -128,7 +128,7 @@ async function enqueueDueTargets() {
   }
 }
 
-async function publishTarget(job: Job<PublishTargetJob>) {
+async function publishTarget(job: Job<{ targetId: string }>) {
   const target = await prisma.postTarget.findUnique({
     where: { id: job.data.targetId },
     include: {
@@ -228,7 +228,7 @@ const worker = new Worker<PublishTargetJob>(
       await enqueueDueTargets();
       return;
     }
-    if (job.name === "publish-target") await publishTarget(job);
+    if (job.name === "publish-target" && "targetId" in job.data) await publishTarget(job as Job<{ targetId: string }>);
   },
   { connection, concurrency: 5 }
 );
@@ -266,7 +266,7 @@ worker.on("error", (error) => {
   process.stderr.write(`Publishing worker error: ${error.message}\n`);
 });
 
-await publishingQueue.add("scan-scheduled-posts", {}, {
+await publishingQueue.add("scan-scheduled-posts", { scan: true }, {
   repeat: { every: 15_000 },
   jobId: "scan-scheduled-posts"
 });

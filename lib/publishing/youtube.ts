@@ -7,7 +7,7 @@ const UPLOAD_URL = "https://www.googleapis.com/upload/youtube/v3/videos";
 const CHUNK_SIZE = 8 * 1024 * 1024;
 const MAX_RECOVERY_ATTEMPTS = 5;
 
-type YouTubeVideoResponse = { id?: string; error?: { message?: string; errors?: Array<{ reason?: string }> } };
+type YouTubeVideoResponse = { id?: string; snippet?: { channelId?: string }; error?: { message?: string; errors?: Array<{ reason?: string }> } };
 
 function uploadError(message: string): UnrecoverableError {
   return new UnrecoverableError(message.slice(0, 700));
@@ -95,7 +95,29 @@ async function startResumableUpload(input: {
   return sessionUrl;
 }
 
-async function queryUploadStatus(sessionUrl: string, accessToken: string, size: number) {
+function confirmedVideo(data: YouTubeVideoResponse, expectedChannelId: string) {
+  if (!data.id) throw uploadError("YouTube accepted the upload but returned no video ID. Check the channel before retrying.");
+  if (!data.snippet?.channelId) {
+    throw uploadError(`YouTube returned video ${data.id} without its destination channel. Check the channel before retrying.`);
+  }
+  if (data.snippet.channelId !== expectedChannelId) {
+    throw uploadError(`YouTube created video ${data.id} on an unexpected channel. Check both channels before retrying.`);
+  }
+  return data.id;
+}
+
+async function confirmedUploadStatus(sessionUrl: string, accessToken: string, size: number, expectedChannelId: string) {
+  try {
+    const status = await confirmedUploadStatus(sessionUrl, accessToken, size, expectedChannelId);
+    if (status.videoId) return { offset: status.offset, videoId: status.videoId };
+    return status;
+  } catch (error) {
+    if (error instanceof UnrecoverableError) throw error;
+    throw uploadError("YouTube upload progress could not be confirmed. Check the channel before retrying to avoid a duplicate video.");
+  }
+}
+
+async function queryUploadStatus(sessionUrl: string, accessToken: string, size: number, expectedChannelId: string) {
   const response = await fetch(sessionUrl, {
     method: "PUT",
     headers: {
@@ -119,7 +141,7 @@ async function queryUploadStatus(sessionUrl: string, accessToken: string, size: 
   throw new Error("Unable to determine YouTube upload progress.");
 }
 
-async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: string, size: number): Promise<string> {
+async function uploadChunks(sessionUrl: string, accessToken: string, mediaPath: string, size: number, expectedChannelId: string): Promise<string> {
   const file = await open(mediaPath, "r");
   let offset = 0;
   let recoveryAttempts = 0;
@@ -226,7 +248,7 @@ export const youtubePublishingAdapter: PublishingAdapter = {
       mimeType: input.mimeType,
       size: details.size
     });
-    const platformPostId = await uploadChunks(sessionUrl, input.accessToken, input.mediaPath, details.size);
+    const platformPostId = await uploadChunks(sessionUrl, input.accessToken, input.mediaPath, details.size, input.platformAccountId);
     return { platformPostId };
   }
 };

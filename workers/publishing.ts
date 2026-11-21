@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { Job, UnrecoverableError, Worker } from "bullmq";
 import IORedis from "ioredis";
-import { mkdir, readFile } from "node:fs/promises";
+import { access } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { prisma } from "../lib/prisma";
 import { PUBLISHING_QUEUE_NAME, type PublishTargetJob } from "../lib/publishing/queue";
@@ -127,12 +127,12 @@ async function publishTarget(job: Job<PublishTargetJob>) {
     const mediaPath = target.post.mediaAsset
       ? join(mediaDirectory, target.post.mediaAsset.storageKey)
       : null;
-    const mediaBytes = mediaPath ? await readFile(mediaPath) : null;
+    if (mediaPath) await access(mediaPath);
     const result = await adapter.publish({
       platformAccountId: target.socialAccount.platformAccountId,
       accessToken,
       caption: target.post.caption,
-      mediaPath: mediaBytes ? mediaPath : null,
+      mediaPath,
       mimeType: target.post.mediaAsset?.mimeType ?? null,
       fileName: target.post.mediaAsset?.fileName ?? null
     });
@@ -197,7 +197,7 @@ const worker = new Worker<PublishTargetJob>(
 );
 
 worker.on("failed", async (job, error) => {
-  if (!job || job.name !== "publish-target" || job.attemptsMade < (job.opts.attempts ?? 1)) return;
+  if (!job || job.name !== "publish-target" || (job.attemptsMade < (job.opts.attempts ?? 1) && !(error instanceof UnrecoverableError))) return;
   const target = await prisma.postTarget.findUnique({
     where: { id: job.data.targetId },
     include: { post: true }

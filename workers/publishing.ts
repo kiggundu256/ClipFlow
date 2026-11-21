@@ -41,10 +41,15 @@ async function recoverInterruptedTargets() {
         where: { postTargetId: target.id, status: "PROCESSING" },
         data: { status: "FAILED", errorCode: "WORKER_INTERRUPTED", errorMessage: message, finishedAt: new Date() }
       });
-      await tx.post.update({
-        where: { id: target.postId },
-        data: { status: "FAILED", lastError: message }
+      const remaining = await tx.postTarget.count({
+        where: { postId: target.postId, status: { in: ["PENDING", "QUEUED", "PUBLISHING"] } }
       });
+      if (remaining === 0) {
+        await tx.post.update({
+          where: { id: target.postId },
+          data: { status: "FAILED", lastError: message }
+        });
+      }
       await tx.auditEvent.create({
         data: {
           workspaceId: target.post.workspaceId,

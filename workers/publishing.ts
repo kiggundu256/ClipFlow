@@ -234,7 +234,7 @@ const worker = new Worker<PublishTargetJob>(
 );
 
 worker.on("failed", async (job, error) => {
-  if (!job || job.name !== "publish-target" || (job.attemptsMade < (job.opts.attempts ?? 1) && !(error instanceof UnrecoverableError))) return;
+  if (!job || job.name !== "publish-target" || !("targetId" in job.data) || (job.attemptsMade < (job.opts.attempts ?? 1) && !(error instanceof UnrecoverableError))) return;
   const target = await prisma.postTarget.findUnique({
     where: { id: job.data.targetId },
     include: { post: true }

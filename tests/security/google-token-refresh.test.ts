@@ -86,6 +86,6 @@ test("does not retry permanent Google OAuth client configuration failures", asyn
         { status: 401 }
       )) as typeof fetch
     }),
-    (error: unknown) => error instanceof UnrecoverableError && /[Rr]econnect the channel/.test(error.message)
+    (error: unknown) => error instanceof GoogleCredentialError && /[Rr]econnect the channel/.test(error.message)
   );
 });

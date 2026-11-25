@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { UnrecoverableError } from "bullmq";
-import { refreshGoogleAccessToken } from "../../lib/oauth/google-token";
+import { GoogleCredentialError, refreshGoogleAccessToken } from "../../lib/oauth/google-token";
 
 const input = {
   refreshToken: "refresh-token",
@@ -42,7 +41,7 @@ test("identifies revoked or expired refresh credentials and requires reconnectio
         { status: 400 }
       )) as typeof fetch
     }),
-    (error: unknown) => error instanceof UnrecoverableError && /connection has been revoked or is no longer valid/.test(error.message)
+    (error: unknown) => error instanceof GoogleCredentialError && /connection has been revoked or is no longer valid/.test(error.message)
   );
 });
 

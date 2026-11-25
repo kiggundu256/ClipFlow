@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ALLOWED_MEDIA_TYPES, MAX_UPLOAD_BYTES, hasValidFileSignature } from "@/lib/media-validation";
+import { findWorkspaceMediaAsset, findWorkspaceSocialAccounts, scheduleWorkspaceDraft } from "@/lib/workspace-access";
 
 function mediaDirectory() {
   return resolve(process.env.CLIPFLOW_MEDIA_DIR || join(process.cwd(), "private-media"));
@@ -82,15 +83,12 @@ export async function createDraft(formData: FormData) {
   if (accountIds.length > 10) redirect("/posts/new?error=channels");
 
   if (accountIds.length) {
-    const accounts = await prisma.socialAccount.findMany({
-      where: { id: { in: accountIds }, workspaceId },
-      select: { id: true }
-    });
+    const accounts = await findWorkspaceSocialAccounts(workspaceId, accountIds);
     if (accounts.length !== accountIds.length) redirect("/posts/new?error=channels");
   }
 
   if (mediaAssetId) {
-    const media = await prisma.mediaAsset.findFirst({ where: { id: mediaAssetId, workspaceId }, select: { id: true } });
+    const media = await findWorkspaceMediaAsset(workspaceId, mediaAssetId);
     if (!media) redirect("/posts/new?error=media");
   }
 
@@ -136,10 +134,7 @@ export async function scheduleDraft(formData: FormData) {
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    const result = await tx.post.updateMany({
-      where: { id: postId, workspaceId: membership.workspaceId, status: "DRAFT", scheduledAt: null },
-      data: { scheduledAt, status: "SCHEDULED" }
-    });
+    const result = await scheduleWorkspaceDraft(tx, membership.workspaceId, postId, scheduledAt);
     if (result.count !== 1) return false;
     await tx.auditEvent.create({
       data: {

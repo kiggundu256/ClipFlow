@@ -1,4 +1,9 @@
-import { UnrecoverableError } from "bullmq";
+export class GoogleCredentialError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GoogleCredentialError";
+  }
+}
 
 export type GoogleRefreshTokenResponse = {
   access_token: string;
@@ -47,7 +52,7 @@ export async function refreshGoogleAccessToken(input: {
 
   if (!response.ok) {
     if (payload.error === "invalid_grant" || payload.error === "invalid_client" || payload.error === "unauthorized_client") {
-      throw new UnrecoverableError("The YouTube connection has been revoked or is no longer valid. Reconnect the channel before publishing.");
+      throw new GoogleCredentialError("The YouTube connection has been revoked or is no longer valid. Reconnect the channel before publishing.");
     }
     if (response.status === 429 || response.status >= 500) {
       throw new Error("Google is temporarily unable to refresh this YouTube connection. Try publishing again shortly.");

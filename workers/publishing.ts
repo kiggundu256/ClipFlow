@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { prisma } from "../lib/prisma";
 import { PUBLISHING_QUEUE_NAME, publishingQueue, type PublishTargetJob } from "../lib/publishing/queue";
 import { getPublishingAdapter } from "../lib/publishing/adapters";
+import { isPublishingFailureTerminal } from "../lib/publishing/retry-policy";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";
 
@@ -235,7 +236,7 @@ const worker = new Worker<PublishTargetJob>(
 );
 
 worker.on("failed", async (job, error) => {
-  if (!job || job.name !== "publish-target" || !("targetId" in job.data) || (job.attemptsMade < (job.opts.attempts ?? 1) && !(error instanceof UnrecoverableError))) return;
+  if (!job || job.name !== "publish-target" || !("targetId" in job.data) || !isPublishingFailureTerminal(job.attemptsMade, job.opts.attempts ?? 1, error instanceof UnrecoverableError)) return;
   const target = await prisma.postTarget.findUnique({
     where: { id: job.data.targetId },
     include: { post: true }

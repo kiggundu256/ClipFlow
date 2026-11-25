@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation, feature/background-publishing-engine]
+    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation, feature/background-publishing-engine, feature/youtube-publishing-adapter]
 
 jobs:
   validate:
@@ -33,6 +33,7 @@ jobs:
       - run: npm install
       - run: npx prisma validate
       - run: npx prisma migrate deploy
+      - run: npm run test
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build

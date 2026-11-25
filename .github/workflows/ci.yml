@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/staging-deployment-readiness]
   pull_request:
-    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation]
+    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation, feature/background-publishing-engine, feature/youtube-publishing-adapter, feature/youtube-publishing-tests, feature/core-regression-test-suite, feature/auth-session-workspace-tests, feature/oauth-security-regression-tests, feature/publishing-retry-regression-tests, feature/publishing-idempotency-tests, feature/publishing-interruption-recovery-tests, feature/google-token-refresh-tests, feature/staging-deployment-readiness]
 
 jobs:
   validate:
@@ -33,6 +33,11 @@ jobs:
       - run: npm install
       - run: npx prisma validate
       - run: npx prisma migrate deploy
+      - run: npm run test
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - name: Validate staging process supervisor
+        run: bash -n scripts/start-staging.sh
+      - name: Build staging container image
+        run: docker build --tag clipflow:ci .

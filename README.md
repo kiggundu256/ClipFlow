@@ -26,6 +26,10 @@ This repository is the source of truth. TikTok public Direct Post is not enabled
 
 Never commit `.env`, platform access tokens, database passwords, or production secrets. Use GitHub Actions secrets and your deployment provider's secret store.
 
+## Staging deployment
+
+See [docs/staging-deployment.md](docs/staging-deployment.md) for the container build, separate web/worker services, persistent storage, environment variables, Google callback setup and safe first-upload checklist.
+
 ## YouTube OAuth setup
 
 Create a Google OAuth 2.0 Web application client and register this exact redirect URI:
@@ -37,7 +41,7 @@ Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `TOKEN_ENCRYPTION_KEY` in yo
 openssl rand -base64 32
 ```
 
-Enable the YouTube Data API v3 in the Google Cloud project. The integration requests YouTube read access and upload permission. Do not commit real credentials or encryption keys.
+Enable the YouTube Data API v3 in the Google Cloud project. The integration requests YouTube read access and `https://www.googleapis.com/auth/youtube.upload`. Existing connected channels must have this upload scope; disconnect and reconnect if ClipFlow reports missing upload permission. Do not commit real credentials or encryption keys.
 
 ## Instagram Login setup
 
@@ -51,3 +55,19 @@ Instagram access tokens are exchanged for long-lived tokens and refreshed server
 ## Content and media storage
 
 The content editor saves workspace-scoped drafts and supports selecting multiple connected channels. The media library currently stores uploads on the application server in a private directory (default: `./private-media`). Set `CLIPFLOW_MEDIA_DIR` to a persistent absolute path in production, keep that directory outside the public web root, restrict filesystem permissions, and include it in encrypted backups. The first upload release accepts MP4, MOV, WebM, JPEG, PNG and WebP files up to 100 MB. Object storage and resumable large uploads are follow-on infrastructure work; do not run multiple app instances with local media storage unless they share a persistent volume.
+
+## Background publishing engine
+
+The publishing foundation uses BullMQ with Redis and PostgreSQL. The standalone worker scans scheduled posts every 15 seconds, atomically moves due posts into the queue, and creates one durable queue job per destination account. Queue job IDs are deterministic so a worker restart between the database update and queue insertion can be recovered on the next scan. Each destination has its own status and publishing-attempt history; transient provider errors use exponential retry.
+
+Start Redis with `docker compose up -d redis`. Configure `REDIS_URL` for both the web app and worker. The worker command is `npm run worker:publish` (the script runs with Node's React Server condition so server-only modules remain unavailable to browser bundles). Run it as a separate supervised process (for example, a systemd service or a dedicated container) alongside the Next.js web process. Redis persistence is enabled in the included Compose configuration.
+
+### YouTube publishing adapter
+
+The YouTube adapter uploads video files through the official YouTube Data API v3 resumable-upload protocol. It uses bounded 8 MiB chunks, checks upload progress after interrupted requests, and records the returned YouTube video ID against the destination. It publishes videos only (not image posts). The title is derived from the first caption line, the full caption becomes the description, hashtags are converted into tags, and the default category is People & Blogs (22).
+
+Set `YOUTUBE_DEFAULT_PRIVACY_STATUS` to `private`, `unlisted`, or `public`; it defaults to `unlisted` for safe first tests. `YOUTUBE_CATEGORY_ID` defaults to `22`. Per-post privacy controls and YouTube processing-status polling are follow-on work. A successful API upload means YouTube returned a video ID; it does not guarantee processing has finished or that the video is already publicly viewable.
+
+The worker must remain disabled until Google OAuth credentials, YouTube Data API v3, Redis, PostgreSQL, persistent media storage, and the YouTube upload scope are configured. Start with an unlisted test video and confirm it appears in the connected channel before enabling scheduled publishing in production. If an upload's final outcome cannot be confirmed, ClipFlow stops automatic retries and marks it for manual channel reconciliation rather than risking duplicate uploads.
+
+Instagram and TikTok adapters are not registered yet.

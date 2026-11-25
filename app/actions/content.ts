@@ -21,7 +21,7 @@ export async function uploadMedia(formData: FormData) {
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) redirect("/media?error=missing");
-  const extension = ALLOWED_TYPES[file.type];
+  const extension = ALLOWED_MEDIA_TYPES[file.type];
   if (!extension) redirect("/media?error=type");
   if (file.size > MAX_UPLOAD_BYTES) redirect("/media?error=size");
 

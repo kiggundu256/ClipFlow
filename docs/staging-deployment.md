@@ -1,6 +1,6 @@
 # Staging deployment
 
-This guide prepares ClipFlow for a real staging environment. The container image runs both the Next.js web app and the separate publishing worker; deploy them as two services from the same image.
+This guide prepares ClipFlow for a real staging environment. The container image can run the Next.js web app and publishing worker as separate services where shared media storage is available. For providers whose persistent volumes attach to only one service (including Railway), use the single-service staging mode below until media is moved to shared object storage.
 
 ## Required services
 
@@ -20,7 +20,7 @@ Build the repository root with the included `Dockerfile`. The image installs dep
 
 Run `npx prisma migrate deploy` once as a release/pre-deploy command after the database is available and before the new web/worker version starts. Do not run migrations independently in both services.
 
-## Environment variables
+## Railway staging layout with the current local media storage\n\nRailway volumes attach to one service, not simultaneously to separate web and worker services. To keep the current filesystem-based media library available to both processes for the first staging upload, use one Railway service with the included supervisor script and one persistent volume mounted at `/data/media`. Set the service start command to `bash scripts/start-staging.sh`. This runs the web app and, when enabled, the publishing worker in the same container. It is appropriate for a controlled first upload only; keep a single replica. For production scaling, move media to shared object storage before splitting the worker into its own service.\n\nRailway mounts volumes as root. With the current non-root Docker image, set `RAILWAY_RUN_UID=0` on that staging service so the app can write to the mounted volume; do not expose the container or its shell to untrusted users.\n\nFor the first connection, leave `RUN_PUBLISHING_WORKER=false` and `CLIPFLOW_PUBLISHING_ENABLED=false`. After the channel and media are verified, set both to `true` only for the controlled unlisted upload.\n\n## Environment variables
 
 Set these in the hosting provider's secret/configuration store. Never commit real values.
 
@@ -36,9 +36,9 @@ Set these in the hosting provider's secret/configuration store. Never commit rea
 | `CLIPFLOW_MEDIA_DIR` | Persistent mounted directory, e.g. `/data/media` |
 | `YOUTUBE_DEFAULT_PRIVACY_STATUS` | `unlisted` for first live test |
 | `YOUTUBE_CATEGORY_ID` | `22` unless deliberately changed |
-| `CLIPFLOW_PUBLISHING_ENABLED` | `false` until the live connection and staging checks are complete |
+| `CLIPFLOW_PUBLISHING_ENABLED` | `false` until the live connection and staging checks are complete |\n| `RUN_PUBLISHING_WORKER` | `false` initially; set `true` only for the supervised single-service staging test |
 
-The web and worker services must use the same database, Redis, encryption key, and media volume. Do not rotate `TOKEN_ENCRYPTION_KEY` after accounts are connected unless you have a deliberate token re-encryption plan; existing encrypted tokens become unreadable with a different key.
+The web and worker processes must use the same database, Redis, encryption key, and media storage. If they are separate services, the media storage must be shared or object-based. Do not rotate `TOKEN_ENCRYPTION_KEY` after accounts are connected unless you have a deliberate token re-encryption plan; existing encrypted tokens become unreadable with a different key.
 
 ## Google OAuth callback
 
@@ -52,7 +52,7 @@ ClipFlow requests `youtube.readonly` and `youtube.upload`. The connected account
 
 ## Safe first-upload sequence
 
-1. Deploy web, PostgreSQL and Redis with publishing disabled.
+1. Deploy the web service (or the combined Railway staging service), PostgreSQL and Redis with publishing disabled.
 2. Confirm `/api/health` returns HTTP 200.
 3. Create the ClipFlow owner account and sign in.
 4. Connect the YouTube channel through the ClipFlow Channels page and Google consent screen.

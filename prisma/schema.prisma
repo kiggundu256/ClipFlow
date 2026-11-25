@@ -27,6 +27,14 @@ enum PostStatus {
   FAILED
   CANCELED
 }
+enum PostTargetStatus {
+  PENDING
+  QUEUED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
 enum AttemptStatus {
   PENDING
   PROCESSING
@@ -121,6 +129,7 @@ model SocialAccount {
   updatedAt             DateTime       @updatedAt
   workspace             Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   posts                 Post[]
+  postTargets            PostTarget[]
   @@unique([workspaceId, platform, platformAccountId])
   @@index([workspaceId, platform])
 }
@@ -159,13 +168,33 @@ model Post {
   client          Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
   socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
   mediaAsset      MediaAsset?    @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  targets         PostTarget[]
   attempts        PublishingAttempt[]
   @@index([workspaceId, status, scheduledAt])
+}
+
+model PostTarget {
+  id              String           @id @default(cuid())
+  postId          String
+  socialAccountId String
+  status          PostTargetStatus @default(PENDING)
+  publishedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  post            Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount    @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  attempts        PublishingAttempt[]
+  @@unique([postId, socialAccountId])
+  @@index([socialAccountId])
+  @@index([status, createdAt])
+  @@index([status, updatedAt])
 }
 
 model PublishingAttempt {
   id             String         @id @default(cuid())
   postId         String
+  postTargetId   String?
   status         AttemptStatus  @default(PENDING)
   platformPostId String?
   errorCode      String?
@@ -173,7 +202,9 @@ model PublishingAttempt {
   startedAt      DateTime       @default(now())
   finishedAt     DateTime?
   post           Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postTarget     PostTarget?    @relation(fields: [postTargetId], references: [id], onDelete: SetNull)
   @@index([postId, startedAt])
+  @@index([postTargetId, startedAt])
 }
 
 model Subscription {

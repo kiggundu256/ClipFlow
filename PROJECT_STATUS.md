@@ -1,6 +1,6 @@
 # ClipFlow Project Status
 
-Last updated: 2026-11-20
+Last updated: 2026-11-21
 
 This file is the persistent build checkpoint. Keep it updated as milestones are completed.
 
@@ -37,9 +37,10 @@ Build priorities:
 - [x] Server-side access-token refresh before expiry, with reconnect errors when refresh is revoked.
 - [x] Channel center and connected-account display.
 - [x] Hardened OAuth state consumption with an atomic single-use database delete to prevent concurrent callback replay.
-- [x] Verify CI for the YouTube multi-channel and token-refresh changes (run #15, success).\n- [ ] Verify CI for the Instagram OAuth integration and final channel-page copy fix.
+- [x] Verify CI for YouTube and Instagram OAuth integration (run #24, success: Prisma validation, migration deploy, typecheck, lint, and production build).
 - [ ] Configure Google Cloud OAuth client and YouTube Data API v3.
-- [ ] Test a real YouTube channel connection in local/staging.\n- [ ] Configure Meta app and test a real Instagram Professional account connection.
+- [ ] Test a real YouTube channel connection in local/staging.
+- [ ] Configure Meta app and test a real Instagram Professional account connection.
 - [x] Implement Meta Instagram Login OAuth for eligible Instagram professional accounts.
 - [ ] Implement TikTok Login Kit and Content Posting API after required permissions are confirmed.
 - Current PR: https://github.com/kiggundu256/ClipFlow/pull/2
@@ -48,23 +49,31 @@ Build priorities:
 Required server environment variables for YouTube and Instagram:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `META_APP_ID` and `META_APP_SECRET` (Instagram Login)\n- `TOKEN_ENCRYPTION_KEY` (base64-encoded 32-byte key)
+- `META_APP_ID` and `META_APP_SECRET` (Instagram Login)
+- `TOKEN_ENCRYPTION_KEY` (base64-encoded 32-byte key)
+- `CLIPFLOW_MEDIA_DIR` (persistent private media directory)
 - `NEXT_PUBLIC_APP_URL`
 
 Google OAuth callback:
 - Local: `http://localhost:3000/api/oauth/google/callback`
 - Production: `https://YOUR_DOMAIN/api/oauth/google/callback`
 
-### 3. Content management — NOT STARTED
+### 3. Content management — IN PROGRESS
 
-- [ ] Media upload and private storage.
-- [ ] Draft editor with captions and hashtags.
-- [ ] Link content to one or more connected channels.
-- [ ] Preview and validation against platform constraints.
+- [x] Private workspace-scoped media upload for MP4, MOV, WebM, JPEG, PNG and WebP (100 MB cap; file-signature validation).
+- [x] Private media library and authenticated media delivery route.
+- [x] Draft editor with captions and hashtags.
+- [x] Multi-channel draft targeting through a normalized PostTarget relation.
+- [x] Live draft preview with selected channel destinations, attached media preview and preliminary YouTube/Instagram content checks.
+- [ ] Add final provider-specific media/caption validation before publishing is enabled.
+- [ ] Move media storage to a production object-storage adapter before horizontal scaling.
 
-### 4. Calendar and publishing engine — NOT STARTED
+### 4. Calendar and publishing engine — IN PROGRESS
 
-- [ ] Calendar and scheduling workflow.
+- [x] Content calendar agenda for upcoming scheduled posts and unscheduled drafts.
+- [x] Workspace-scoped scheduling action with future-time validation and atomic audit logging.
+- [x] Browser-local datetime converted to UTC before storage; schedule is clearly labeled as planning-only.
+- [x] CI pull-request filters include the calendar branch target so stacked scheduling work is validated.
 - [ ] Redis-backed background jobs and reliable retries.
 - [ ] Platform-specific publishing adapters.
 - [ ] Publishing history, failure states, and notifications.

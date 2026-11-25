@@ -8,6 +8,7 @@ import { prisma } from "../lib/prisma";
 import { PUBLISHING_QUEUE_NAME, publishingQueue, type PublishTargetJob } from "../lib/publishing/queue";
 import { getPublishingAdapter } from "../lib/publishing/adapters";
 import { isPublishingFailureTerminal } from "../lib/publishing/retry-policy";
+import { claimQueuedPostTarget, getPublishingTargetJobId } from "../lib/publishing/idempotency";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";
 
@@ -125,7 +126,7 @@ async function enqueueDueTargets() {
   });
 
   for (const target of queuedTargets) {
-    await publishingQueue.add("publish-target", { targetId: target.id }, { jobId: `publish-${target.id}` });
+    await publishingQueue.add("publish-target", { targetId: target.id }, { jobId: getPublishingTargetJobId(target.id) });
   }
 }
 
@@ -141,10 +142,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
 
   const adapter = getPublishingAdapter(target.socialAccount.platform);
 
-  const claimed = await prisma.postTarget.updateMany({
-    where: { id: target.id, status: "QUEUED" },
-    data: { status: "PUBLISHING", lastError: null }
-  });
+  const claimed = await claimQueuedPostTarget(target.id);
   if (claimed.count !== 1) return;
 
   const attempt = await prisma.publishingAttempt.create({

@@ -20,7 +20,15 @@ Build the repository root with the included `Dockerfile`. The image installs dep
 
 Run `npx prisma migrate deploy` once as a release/pre-deploy command after the database is available and before the new web/worker version starts. Do not run migrations independently in both services.
 
-## Railway staging layout with the current local media storage\n\nRailway volumes attach to one service, not simultaneously to separate web and worker services. To keep the current filesystem-based media library available to both processes for the first staging upload, use one Railway service with the included supervisor script and one persistent volume mounted at `/data/media`. Set the service start command to `bash scripts/start-staging.sh`. This runs the web app and, when enabled, the publishing worker in the same container. It is appropriate for a controlled first upload only; keep a single replica. For production scaling, move media to shared object storage before splitting the worker into its own service.\n\nRailway mounts volumes as root. With the current non-root Docker image, set `RAILWAY_RUN_UID=0` on that staging service so the app can write to the mounted volume; do not expose the container or its shell to untrusted users.\n\nFor the first connection, leave `RUN_PUBLISHING_WORKER=false` and `CLIPFLOW_PUBLISHING_ENABLED=false`. After the channel and media are verified, set both to `true` only for the controlled unlisted upload.\n\n## Environment variables
+## Railway staging layout with the current local media storage
+
+Railway volumes attach to one service, not simultaneously to separate web and worker services. To keep the current filesystem-based media library available to both processes for the first staging upload, use one Railway service with the included supervisor script and one persistent volume mounted at `/data/media`. Set the service start command to `bash scripts/start-staging.sh`. This runs the web app and, when enabled, the publishing worker in the same container. It is appropriate for a controlled first upload only; keep a single replica. For production scaling, move media to shared object storage before splitting the worker into its own service.
+
+Railway mounts volumes as root. With the current non-root Docker image, set `RAILWAY_RUN_UID=0` on that staging service so the app can write to the mounted volume; do not expose the container or its shell to untrusted users.
+
+For the first connection, leave `RUN_PUBLISHING_WORKER=false` and `CLIPFLOW_PUBLISHING_ENABLED=false`. After the channel and media are verified, set both to `true` only for the controlled unlisted upload.
+
+## Environment variables
 
 Set these in the hosting provider's secret/configuration store. Never commit real values.
 
@@ -36,7 +44,8 @@ Set these in the hosting provider's secret/configuration store. Never commit rea
 | `CLIPFLOW_MEDIA_DIR` | Persistent mounted directory, e.g. `/data/media` |
 | `YOUTUBE_DEFAULT_PRIVACY_STATUS` | `unlisted` for first live test |
 | `YOUTUBE_CATEGORY_ID` | `22` unless deliberately changed |
-| `CLIPFLOW_PUBLISHING_ENABLED` | `false` until the live connection and staging checks are complete |\n| `RUN_PUBLISHING_WORKER` | `false` initially; set `true` only for the supervised single-service staging test |
+| `CLIPFLOW_PUBLISHING_ENABLED` | `false` until the live connection and staging checks are complete |
+| `RUN_PUBLISHING_WORKER` | `false` initially; set `true` only for the supervised single-service staging test |
 
 The web and worker processes must use the same database, Redis, encryption key, and media storage. If they are separate services, the media storage must be shared or object-based. Do not rotate `TOKEN_ENCRYPTION_KEY` after accounts are connected unless you have a deliberate token re-encryption plan; existing encrypted tokens become unreadable with a different key.
 

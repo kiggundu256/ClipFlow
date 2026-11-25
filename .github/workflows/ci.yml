@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation, feature/background-publishing-engine, feature/youtube-publishing-adapter]
+    branches: [main, feature/social-oauth-foundation, feature/content-management-foundation, feature/calendar-scheduling-foundation, feature/background-publishing-engine, feature/youtube-publishing-adapter, feature/youtube-publishing-tests]
 
 jobs:
   validate:

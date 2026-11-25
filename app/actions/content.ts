@@ -7,25 +7,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-const ALLOWED_TYPES: Record<string, string> = {
-  "video/mp4": ".mp4",
-  "video/quicktime": ".mov",
-  "video/webm": ".webm",
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp"
-};
-
-function hasValidFileSignature(type: string, bytes: Buffer) {
-  if (type === "image/jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  if (type === "image/png") return bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  if (type === "image/webp") return bytes.length >= 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP";
-  if (type === "video/webm") return bytes.length >= 4 && bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
-  if (type === "video/mp4" || type === "video/quicktime") return bytes.length >= 12 && bytes.toString("ascii", 4, 8) === "ftyp";
-  return false;
-}
+import { ALLOWED_MEDIA_TYPES, MAX_UPLOAD_BYTES, hasValidFileSignature } from "@/lib/media-validation";
+import { findWorkspaceMediaAsset, findWorkspaceSocialAccounts, scheduleWorkspaceDraft } from "@/lib/workspace-access";
 
 function mediaDirectory() {
   return resolve(process.env.CLIPFLOW_MEDIA_DIR || join(process.cwd(), "private-media"));
@@ -39,7 +22,7 @@ export async function uploadMedia(formData: FormData) {
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) redirect("/media?error=missing");
-  const extension = ALLOWED_TYPES[file.type];
+  const extension = ALLOWED_MEDIA_TYPES[file.type];
   if (!extension) redirect("/media?error=type");
   if (file.size > MAX_UPLOAD_BYTES) redirect("/media?error=size");
 
@@ -100,15 +83,12 @@ export async function createDraft(formData: FormData) {
   if (accountIds.length > 10) redirect("/posts/new?error=channels");
 
   if (accountIds.length) {
-    const accounts = await prisma.socialAccount.findMany({
-      where: { id: { in: accountIds }, workspaceId },
-      select: { id: true }
-    });
+    const accounts = await findWorkspaceSocialAccounts(workspaceId, accountIds);
     if (accounts.length !== accountIds.length) redirect("/posts/new?error=channels");
   }
 
   if (mediaAssetId) {
-    const media = await prisma.mediaAsset.findFirst({ where: { id: mediaAssetId, workspaceId }, select: { id: true } });
+    const media = await findWorkspaceMediaAsset(workspaceId, mediaAssetId);
     if (!media) redirect("/posts/new?error=media");
   }
 
@@ -154,10 +134,7 @@ export async function scheduleDraft(formData: FormData) {
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    const result = await tx.post.updateMany({
-      where: { id: postId, workspaceId: membership.workspaceId, status: "DRAFT", scheduledAt: null },
-      data: { scheduledAt, status: "SCHEDULED" }
-    });
+    const result = await scheduleWorkspaceDraft(tx, membership.workspaceId, postId, scheduledAt);
     if (result.count !== 1) return false;
     await tx.auditEvent.create({
       data: {

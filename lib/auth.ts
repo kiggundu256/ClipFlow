@@ -5,6 +5,8 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 
+export { hashPassword, verifyPassword };
+
 const COOKIE_NAME = "clipflow_session";
 const SESSION_DAYS = 30;
 

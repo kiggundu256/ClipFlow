@@ -2,6 +2,7 @@ import "server-only";
 
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import { getPublishingDefaultJobOptions } from "./retry-policy";
 
 export const PUBLISHING_QUEUE_NAME = "clipflow-publishing";
 
@@ -17,10 +18,5 @@ export type PublishTargetJob = { targetId: string } | { scan: true };
 
 export const publishingQueue = new Queue<PublishTargetJob>(PUBLISHING_QUEUE_NAME, {
   connection: publishingConnection,
-  defaultJobOptions: {
-    attempts: 5,
-    backoff: { type: "exponential", delay: 30_000 },
-    removeOnComplete: { age: 7 * 24 * 60 * 60, count: 10_000 },
-    removeOnFail: { age: 30 * 24 * 60 * 60 }
-  }
+  defaultJobOptions: getPublishingDefaultJobOptions()
 });

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { consumeOAuthState, createOAuthState } from "@/lib/oauth/state";
 import { encryptToken, decryptToken } from "@/lib/oauth/google";
 
 const AUTHORIZE_URL = "https://www.instagram.com/oauth/authorize";
@@ -15,24 +15,10 @@ function requiredEnv(name: string) {
   return value;
 }
 
-function hashState(state: string) {
-  return createHash("sha256").update(state).digest("hex");
-}
-
 export async function createInstagramAuthorizationUrl(userId: string, workspaceId: string) {
   const appId = requiredEnv("META_APP_ID");
   const appUrl = requiredEnv("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
-  const state = randomBytes(32).toString("base64url");
-
-  await prisma.oAuthState.create({
-    data: {
-      stateHash: hashState(state),
-      provider: "INSTAGRAM",
-      userId,
-      workspaceId,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-    }
-  });
+  const state = await createOAuthState(userId, workspaceId, "INSTAGRAM");
 
   const url = new URL(AUTHORIZE_URL);
   url.search = new URLSearchParams({
@@ -74,23 +60,7 @@ async function exchangeForLongLivedToken(shortLivedToken: string) {
 }
 
 export async function completeInstagramAuthorization(code: string, state: string) {
-  const stateHash = hashState(state);
-  const pending = await prisma.oAuthState.findUnique({ where: { stateHash } });
-  const now = new Date();
-
-  if (!pending || pending.provider !== "INSTAGRAM" || pending.expiresAt <= now) {
-    if (pending && pending.expiresAt <= now) {
-      await prisma.oAuthState.deleteMany({ where: { id: pending.id } });
-    }
-    throw new Error("This Instagram connection request has expired. Please try again.");
-  }
-
-  const consumed = await prisma.oAuthState.deleteMany({
-    where: { id: pending.id, provider: "INSTAGRAM", expiresAt: { gt: now } }
-  });
-  if (consumed.count !== 1) {
-    throw new Error("This Instagram connection request has already been used or has expired.");
-  }
+  const pending = await consumeOAuthState(state, "INSTAGRAM");
 
   const appUrl = requiredEnv("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
   const tokenResponse = await fetch(TOKEN_URL, {

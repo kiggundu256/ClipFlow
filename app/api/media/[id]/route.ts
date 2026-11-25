@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { findWorkspaceMediaAsset } from "@/lib/workspace-access";
 
 export const runtime = "nodejs";
 
@@ -17,10 +17,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!membership) return new NextResponse("Workspace not found", { status: 404 });
 
   const { id } = await context.params;
-  const asset = await prisma.mediaAsset.findFirst({
-    where: { id, workspaceId: membership.workspaceId },
-    select: { storageKey: true, mimeType: true, fileName: true }
-  });
+  const asset = await findWorkspaceMediaAsset(membership.workspaceId, id);
   if (!asset) return new NextResponse("Not found", { status: 404 });
 
   try {

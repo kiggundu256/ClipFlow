@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Instagram, MonitorPlay, Plus, Video, Youtube } from "lucide-react";
 import { createDraft } from "@/app/actions/content";
 
@@ -68,7 +69,7 @@ export function PostEditor({ accounts, assets }: { accounts: Account[]; assets: 
       <div className="preview-post-card">
         <div className="preview-brand"><span className="preview-brand-mark">C</span><span><b>ClipFlow preview</b><small>Not a live platform rendering</small></span></div>
         {asset ? <div className="preview-media">
-          {isVideo ? <video src={`/api/media/${asset.id}`} controls preload="metadata"/> : isImage ? <img src={`/api/media/${asset.id}`} alt={asset.fileName}/> : <div className="preview-no-media"><Video size={22}/></div>}
+          {isVideo ? <video src={`/api/media/${asset.id}`} controls preload="metadata"/> : isImage ? <Image src={`/api/media/${asset.id}`} alt={asset.fileName} width={640} height={360} unoptimized/> : <div className="preview-no-media"><Video size={22}/></div>}
         </div> : <div className="preview-no-media"><Video size={22}/><span>Media preview appears here</span></div>}
         <div className="preview-caption">{caption ? caption : <span className="preview-placeholder">Your caption will appear here...</span>}</div>
         {asset && <div className="preview-file-name">{asset.fileName}</div>}

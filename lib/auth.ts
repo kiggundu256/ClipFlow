@@ -1,29 +1,15 @@
 import "server-only";
 
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { hashPassword, verifyPassword } from "@/lib/password";
 
 const COOKIE_NAME = "clipflow_session";
 const SESSION_DAYS = 30;
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
-}
-
-export function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const derivedKey = scryptSync(password, salt, 64).toString("hex");
-  return `${salt}:${derivedKey}`;
-}
-
-export function verifyPassword(password: string, storedHash: string) {
-  const [salt, key] = storedHash.split(":");
-  if (!salt || !key) return false;
-
-  const expected = Buffer.from(key, "hex");
-  const actual = scryptSync(password, salt, expected.length);
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export async function createSession(userId: string) {

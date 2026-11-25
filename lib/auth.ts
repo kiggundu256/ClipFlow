@@ -33,7 +33,7 @@ export async function getCurrentUser() {
   if (!token) return null;
 
   const session = await prisma.session.findUnique({
-    where: { tokenHash: hashToken(token) },
+    where: { tokenHash: hashSessionToken(token) },
     include: {
       user: {
         include: {
@@ -60,7 +60,7 @@ export async function destroySession() {
   const token = cookieStore.get(COOKIE_NAME)?.value;
 
   if (token) {
-    await prisma.session.deleteMany({ where: { tokenHash: hashToken(token) } });
+    await prisma.session.deleteMany({ where: { tokenHash: hashSessionToken(token) } });
   }
 
   cookieStore.delete(COOKIE_NAME);

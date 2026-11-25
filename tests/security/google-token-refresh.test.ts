@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { UnrecoverableError } from "bullmq";
 import { refreshGoogleAccessToken } from "../../lib/oauth/google-token";
 
 const input = {
@@ -41,7 +42,7 @@ test("identifies revoked or expired refresh credentials and requires reconnectio
         { status: 400 }
       )) as typeof fetch
     }),
-    /connection has been revoked or is no longer valid/
+    (error: unknown) => error instanceof UnrecoverableError && /connection has been revoked or is no longer valid/.test(error.message)
   );
 });
 
@@ -74,5 +75,18 @@ test("reports network interruptions as retryable refresh failures", async () => 
       fetcher: (async () => { throw new TypeError("network unavailable"); }) as typeof fetch
     }),
     /could not be reached/
+  );
+});
+
+test("does not retry permanent Google OAuth client configuration failures", async () => {
+  await assert.rejects(
+    refreshGoogleAccessToken({
+      ...input,
+      fetcher: (async () => Response.json(
+        { error: "invalid_client" },
+        { status: 401 }
+      )) as typeof fetch
+    }),
+    (error: unknown) => error instanceof UnrecoverableError && /reconnect the channel/.test(error.message)
   );
 });

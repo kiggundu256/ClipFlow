@@ -11,6 +11,7 @@ import { isPublishingFailureTerminal } from "../lib/publishing/retry-policy";
 import { claimQueuedPostTarget, getPublishingTargetJobId } from "../lib/publishing/idempotency";
 import { recoverInterruptedTarget } from "../lib/publishing/recovery";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
+import { GoogleCredentialError } from "../lib/oauth/google-token";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";
 
 const redisUrl = process.env.REDIS_URL;
@@ -187,6 +188,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
         data: { status: "QUEUED", lastError: message.slice(0, 1000) }
       });
     });
+    if (error instanceof GoogleCredentialError) throw new UnrecoverableError(message);
     throw error;
   }
 }

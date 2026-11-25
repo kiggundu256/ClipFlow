@@ -26,7 +26,11 @@ This repository is the source of truth. TikTok public Direct Post is not enabled
 
 Never commit `.env`, platform access tokens, database passwords, or production secrets. Use GitHub Actions secrets and your deployment provider's secret store.
 
-## Staging deployment\n\nSee [docs/staging-deployment.md](docs/staging-deployment.md) for the container build, separate web/worker services, persistent storage, environment variables, Google callback setup and safe first-upload checklist.\n\n## YouTube OAuth setup
+## Staging deployment
+
+See [docs/staging-deployment.md](docs/staging-deployment.md) for the container build, separate web/worker services, persistent storage, environment variables, Google callback setup and safe first-upload checklist.
+
+## YouTube OAuth setup
 
 Create a Google OAuth 2.0 Web application client and register this exact redirect URI:
 `http://localhost:3000/api/oauth/google/callback` for local development, plus your production callback URL after deployment.

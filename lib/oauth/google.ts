@@ -1,7 +1,9 @@
 import "server-only";
 
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { consumeOAuthState, createOAuthState } from "@/lib/oauth/state";
+import { refreshGoogleAccessToken } from "@/lib/oauth/google-token";
 
 const GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -41,24 +43,10 @@ export function decryptToken(value: string) {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
 }
 
-function hashState(state: string) {
-  return createHash("sha256").update(state).digest("hex");
-}
-
 export async function createGoogleAuthorizationUrl(userId: string, workspaceId: string) {
   const clientId = requiredEnv("GOOGLE_CLIENT_ID");
   const appUrl = requiredEnv("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
-  const state = randomBytes(32).toString("base64url");
-
-  await prisma.oAuthState.create({
-    data: {
-      stateHash: hashState(state),
-      provider: "YOUTUBE",
-      userId,
-      workspaceId,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-    }
-  });
+  const state = await createOAuthState(userId, workspaceId, "YOUTUBE");
 
   const url = new URL(GOOGLE_AUTHORIZE_URL);
   url.search = new URLSearchParams({
@@ -114,23 +102,7 @@ async function getGoogleChannels(accessToken: string) {
 }
 
 export async function completeGoogleAuthorization(code: string, state: string) {
-  const stateHash = hashState(state);
-  const pending = await prisma.oAuthState.findUnique({ where: { stateHash } });
-  const now = new Date();
-  if (!pending || pending.provider !== "YOUTUBE" || pending.expiresAt <= now) {
-    if (pending && pending.expiresAt <= now) {
-      await prisma.oAuthState.deleteMany({ where: { id: pending.id } });
-    }
-    throw new Error("This connection request has expired. Please try again.");
-  }
-
-  // Atomically consume the state so concurrent callbacks cannot both succeed.
-  const consumed = await prisma.oAuthState.deleteMany({
-    where: { id: pending.id, provider: "YOUTUBE", expiresAt: { gt: now } }
-  });
-  if (consumed.count !== 1) {
-    throw new Error("This connection request has already been used or has expired. Please try again.");
-  }
+  const pending = await consumeOAuthState(state, "YOUTUBE");
 
   const appUrl = requiredEnv("NEXT_PUBLIC_APP_URL").replace(/\/$/, "");
   const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
@@ -231,23 +203,12 @@ export async function getValidGoogleAccessToken(socialAccountId: string) {
     throw new Error("The YouTube connection has expired. Please reconnect the channel.");
   }
 
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: requiredEnv("GOOGLE_CLIENT_ID"),
-      client_secret: requiredEnv("GOOGLE_CLIENT_SECRET"),
-      refresh_token: decryptToken(account.encryptedRefreshToken),
-      grant_type: "refresh_token"
-    }),
-    cache: "no-store"
+  const tokens = await refreshGoogleAccessToken({
+    refreshToken: decryptToken(account.encryptedRefreshToken),
+    clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+    clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+    tokenUrl: GOOGLE_TOKEN_URL
   });
-
-  if (!response.ok) {
-    throw new Error("Google could not refresh this YouTube connection. Please reconnect the channel.");
-  }
-
-  const tokens = await response.json() as GoogleTokenResponse;
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
   const encryptedAccessToken = encryptToken(tokens.access_token);
 

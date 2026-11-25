@@ -7,7 +7,11 @@ import { join, resolve } from "node:path";
 import { prisma } from "../lib/prisma";
 import { PUBLISHING_QUEUE_NAME, publishingQueue, type PublishTargetJob } from "../lib/publishing/queue";
 import { getPublishingAdapter } from "../lib/publishing/adapters";
+import { isPublishingFailureTerminal } from "../lib/publishing/retry-policy";
+import { claimQueuedPostTarget, getPublishingTargetJobId } from "../lib/publishing/idempotency";
+import { recoverInterruptedTarget } from "../lib/publishing/recovery";
 import { getValidGoogleAccessToken } from "../lib/oauth/google";
+import { GoogleCredentialError } from "../lib/oauth/google-token";
 import { getValidInstagramAccessToken } from "../lib/oauth/instagram";
 
 const redisUrl = process.env.REDIS_URL;
@@ -20,46 +24,15 @@ const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null, enableRea
 const mediaDirectory = resolve(process.env.CLIPFLOW_MEDIA_DIR || join(process.cwd(), "private-media"));
 
 async function recoverInterruptedTargets() {
-  // Do not automatically retry an interrupted provider request: the platform may
-  // have accepted it just before the worker stopped. Mark it for reconciliation.
   const cutoff = new Date(Date.now() - 60 * 60 * 1000);
   const stale = await prisma.postTarget.findMany({
     where: { status: "PUBLISHING", updatedAt: { lt: cutoff } },
-    include: { post: true },
+    select: { id: true },
     take: 100
   });
 
   for (const target of stale) {
-    const message = "Publishing was interrupted and the platform result is unknown. Check the destination account before retrying.";
-    await prisma.$transaction(async (tx) => {
-      const changed = await tx.postTarget.updateMany({
-        where: { id: target.id, status: "PUBLISHING", updatedAt: { lt: cutoff } },
-        data: { status: "FAILED", lastError: message }
-      });
-      if (changed.count !== 1) return;
-      await tx.publishingAttempt.updateMany({
-        where: { postTargetId: target.id, status: "PROCESSING" },
-        data: { status: "FAILED", errorCode: "WORKER_INTERRUPTED", errorMessage: message, finishedAt: new Date() }
-      });
-      const remaining = await tx.postTarget.count({
-        where: { postId: target.postId, status: { in: ["PENDING", "QUEUED", "PUBLISHING"] } }
-      });
-      if (remaining === 0) {
-        await tx.post.update({
-          where: { id: target.postId },
-          data: { status: "FAILED", lastError: message }
-        });
-      }
-      await tx.auditEvent.create({
-        data: {
-          workspaceId: target.post.workspaceId,
-          action: "post.target_interrupted",
-          targetType: "PostTarget",
-          targetId: target.id,
-          metadata: { code: "WORKER_INTERRUPTED" }
-        }
-      });
-    });
+    await recoverInterruptedTarget(target.id, cutoff);
   }
 }
 
@@ -124,7 +97,7 @@ async function enqueueDueTargets() {
   });
 
   for (const target of queuedTargets) {
-    await publishingQueue.add("publish-target", { targetId: target.id }, { jobId: `publish-${target.id}` });
+    await publishingQueue.add("publish-target", { targetId: target.id }, { jobId: getPublishingTargetJobId(target.id) });
   }
 }
 
@@ -140,10 +113,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
 
   const adapter = getPublishingAdapter(target.socialAccount.platform);
 
-  const claimed = await prisma.postTarget.updateMany({
-    where: { id: target.id, status: "QUEUED" },
-    data: { status: "PUBLISHING", lastError: null }
-  });
+  const claimed = await claimQueuedPostTarget(target.id);
   if (claimed.count !== 1) return;
 
   const attempt = await prisma.publishingAttempt.create({
@@ -168,6 +138,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
     const result = await adapter.publish({
       platformAccountId: target.socialAccount.platformAccountId,
       accessToken,
+      scopes: target.socialAccount.scopes,
       caption: target.post.caption,
       mediaPath,
       mimeType: target.post.mediaAsset?.mimeType ?? null,
@@ -217,6 +188,7 @@ async function publishTarget(job: Job<{ targetId: string }>) {
         data: { status: "QUEUED", lastError: message.slice(0, 1000) }
       });
     });
+    if (error instanceof GoogleCredentialError) throw new UnrecoverableError(message);
     throw error;
   }
 }
@@ -234,7 +206,7 @@ const worker = new Worker<PublishTargetJob>(
 );
 
 worker.on("failed", async (job, error) => {
-  if (!job || job.name !== "publish-target" || !("targetId" in job.data) || (job.attemptsMade < (job.opts.attempts ?? 1) && !(error instanceof UnrecoverableError))) return;
+  if (!job || job.name !== "publish-target" || !("targetId" in job.data) || !isPublishingFailureTerminal(job.attemptsMade, job.opts.attempts ?? 1, error instanceof UnrecoverableError)) return;
   const target = await prisma.postTarget.findUnique({
     where: { id: job.data.targetId },
     include: { post: true }

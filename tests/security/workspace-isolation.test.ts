@@ -20,10 +20,10 @@ test("workspace-scoped media, channel and scheduling operations reject another w
   try {
     const [mediaA, mediaB] = await Promise.all([
       prisma.mediaAsset.create({
-        data: { workspaceId: workspaceA.id, fileName: "a.jpg", mimeType: "image/jpeg", sizeBytes: 3n, storageKey: `${suffix}-a.jpg` }
+        data: { workspaceId: workspaceA.id, fileName: "a.jpg", mimeType: "image/jpeg", sizeBytes: BigInt(3), storageKey: `${suffix}-a.jpg` }
       }),
       prisma.mediaAsset.create({
-        data: { workspaceId: workspaceB.id, fileName: "b.jpg", mimeType: "image/jpeg", sizeBytes: 3n, storageKey: `${suffix}-b.jpg` }
+        data: { workspaceId: workspaceB.id, fileName: "b.jpg", mimeType: "image/jpeg", sizeBytes: BigInt(3), storageKey: `${suffix}-b.jpg` }
       })
     ]);
 

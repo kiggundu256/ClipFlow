@@ -46,7 +46,7 @@ After the staging HTTPS domain is assigned, register this exact URI in the Googl
 
 `https://YOUR-STAGING-DOMAIN/api/oauth/google/callback`
 
-Set `NEXT_PUBLIC_APP_URL` to the same origin. The callback URI must match exactly, including scheme, host and path. Enable YouTube Data API v3 in the same Google Cloud project. The OAuth consent screen must include the account used for the first test if the app is still in Testing mode.
+Set `NEXT_PUBLIC_APP_URL` to the same origin. The callback URI must match exactly, including scheme, host and path. Enable YouTube Data API v3 in the same Google Cloud project. If the OAuth audience is External and the app remains in Testing mode, add the Google account used for the test to the test-user list. Google issues refresh tokens that expire after 7 days for External apps in Testing mode when requesting YouTube scopes, so this is suitable only for a short staging test; reconnect when required. For longer-running staging or public customers, review the OAuth publishing status and any scope-verification requirements in Google Cloud before launch.
 
 ClipFlow requests `youtube.readonly` and `youtube.upload`. The connected account must grant the upload scope. Use a channel you control and a short, non-sensitive test video.
 

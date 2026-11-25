@@ -37,5 +37,5 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
-      - name: Build staging container image
+      - name: Validate staging process supervisor\n        run: bash -n scripts/start-staging.sh\n      - name: Build staging container image
         run: docker build --tag clipflow:ci .

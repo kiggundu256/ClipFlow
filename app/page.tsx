@@ -46,9 +46,9 @@ export default async function Home() {
       <div className="nav-label">WORKSPACE</div>
       <nav>
         <Link className="nav-item active" href="/"><LayoutDashboard size={18}/> Overview</Link>
-        <Link className="nav-item" href="/calendar"><CalendarDays size={18}/> Content calendar</Link>
+        <Link className="nav-item" href="/posts"><CalendarDays size={18}/> Content planner</Link>
         <Link className="nav-item" href="/media"><Film size={18}/> Media library</Link>
-        <Link className="nav-item" href="/queue"><Clock3 size={18}/> Publishing queue</Link>
+        <Link className="nav-item" href="/posts"><Clock3 size={18}/> Drafts & posts</Link>
         <Link className="nav-item" href="/channels"><Users size={18}/> Social accounts</Link>
       </nav>
       <div className="nav-label second">MANAGE</div>
@@ -61,7 +61,7 @@ export default async function Home() {
     <section className="main-area">
       <header className="topbar"><div className="crumb">{workspace.name} <span>/</span> <b>Overview</b></div><div className="top-actions"><span className="status-dot"></span><span className="top-status">Workspace ready</span><div className="avatar-small">{firstName.charAt(0).toUpperCase()}</div></div></header>
       <div className="content">
-        <div className="welcome-row"><div><div className="eyebrow">{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()).toUpperCase()}</div><h1>Good to have you here, {firstName}.</h1><p className="subhead">Your content workspace is ready. Let’s get your channels connected.</p></div><Link className="primary-button" href="/channels"><Plus size={17}/> Connect a channel</Link></div>
+        <div className="welcome-row"><div><div className="eyebrow">{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date()).toUpperCase()}</div><h1>Good to have you here, {firstName}.</h1><p className="subhead">Your content workspace is ready. Create drafts and prepare your next posts.</p></div><Link className="primary-button" href="/posts/new"><Plus size={17}/> Create a post</Link></div>
         <div className="notice"><Sparkles size={17}/><div><b>{channels === 0 ? "Your workspace is ready for its first channel." : "Your channels are connected."}</b><span>{channels === 0 ? "Connect a social account to start organising your publishing workflow." : "Your connected channels and content are managed from this workspace."}</span></div><Link href="/channels">Manage channels <ArrowUpRight size={14}/></Link></div>
         <div className="stats-grid">
           <article className="stat-card"><div className="stat-top"><span>Connected channels</span><span className="stat-icon"><Instagram size={17}/></span></div><div className="stat-value">{channels} <small>/ 3</small></div><div className="stat-foot">Your social accounts</div></article>
@@ -69,9 +69,9 @@ export default async function Home() {
           <article className="stat-card"><div className="stat-top"><span>Published this month</span><span className="stat-icon green"><CheckCircle2 size={17}/></span></div><div className="stat-value">{publishedThisMonth}</div><div className="stat-foot">Across all channels</div></article>
           <article className="stat-card"><div className="stat-top"><span>Media library</span><span className="stat-icon orange"><Film size={17}/></span></div><div className="stat-value">{mediaCount} <small>files</small></div><div className="stat-foot">Videos and creative assets</div></article>
         </div>
-        <div className="section-heading"><div><h2>Upcoming content</h2><p>Your next scheduled posts and drafts.</p></div><Link href="/calendar">View calendar <ArrowUpRight size={14}/></Link></div>
+        <div className="section-heading"><div><h2>Upcoming content</h2><p>Your next scheduled posts and drafts.</p></div><Link href="/posts">View all posts <ArrowUpRight size={14}/></Link></div>
         <div className="posts-card">
-          {upcoming.length === 0 ? <div className="empty-state"><CalendarDays size={24}/><b>Your schedule is clear.</b><span>When you schedule content, it will appear here.</span><Link href="/calendar">Open content calendar <ArrowUpRight size={14}/></Link></div> : upcoming.map((post) => <div className="post-row" key={post.id}><div className="date-tile"><b>{formatDate(post.scheduledAt!).split(" ")[0]}</b><span>{formatDate(post.scheduledAt!).split(" ")[1]}</span></div><div className="post-info"><b>{post.caption.trim() || "Untitled post"}</b><span>{post.socialAccount?.platform ?? "No channel"} · {formatTime(post.scheduledAt!)}</span></div><span className="post-state">{post.status.toLowerCase()}</span></div>)}
+          {upcoming.length === 0 ? <div className="empty-state"><CalendarDays size={24}/><b>Your schedule is clear.</b><span>When you schedule content, it will appear here.</span><Link href="/posts/new">Create your first post <ArrowUpRight size={14}/></Link></div> : upcoming.map((post) => <div className="post-row" key={post.id}><div className="date-tile"><b>{formatDate(post.scheduledAt!).split(" ")[0]}</b><span>{formatDate(post.scheduledAt!).split(" ")[1]}</span></div><div className="post-info"><b>{post.caption.trim() || "Untitled post"}</b><span>{post.socialAccount?.platform ?? "No channel"} · {formatTime(post.scheduledAt!)}</span></div><span className="post-state">{post.status.toLowerCase()}</span></div>)}
         </div>
         <div className="footer-note">ClipFlow uses official platform integrations. Publishing capabilities are enabled only when the required platform permissions are approved.</div>
       </div>

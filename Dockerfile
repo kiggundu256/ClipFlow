@@ -13,8 +13,7 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-RUN DATABASE_URL="$DATABASE_URL" npx prisma generate \\
-  && DATABASE_URL="$DATABASE_URL" npm run build
+RUN DATABASE_URL="$DATABASE_URL" npx prisma generate && DATABASE_URL="$DATABASE_URL" npm run build
 
 RUN mkdir -p /data/media \
   && chown -R node:node /app /data/media

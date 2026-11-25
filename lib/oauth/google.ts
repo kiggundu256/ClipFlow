@@ -3,6 +3,7 @@ import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { consumeOAuthState, createOAuthState } from "@/lib/oauth/state";
+import { refreshGoogleAccessToken } from "@/lib/oauth/google-token";
 
 const GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -202,23 +203,12 @@ export async function getValidGoogleAccessToken(socialAccountId: string) {
     throw new Error("The YouTube connection has expired. Please reconnect the channel.");
   }
 
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: requiredEnv("GOOGLE_CLIENT_ID"),
-      client_secret: requiredEnv("GOOGLE_CLIENT_SECRET"),
-      refresh_token: decryptToken(account.encryptedRefreshToken),
-      grant_type: "refresh_token"
-    }),
-    cache: "no-store"
+  const tokens = await refreshGoogleAccessToken({
+    refreshToken: decryptToken(account.encryptedRefreshToken),
+    clientId: requiredEnv("GOOGLE_CLIENT_ID"),
+    clientSecret: requiredEnv("GOOGLE_CLIENT_SECRET"),
+    tokenUrl: GOOGLE_TOKEN_URL
   });
-
-  if (!response.ok) {
-    throw new Error("Google could not refresh this YouTube connection. Please reconnect the channel.");
-  }
-
-  const tokens = await response.json() as GoogleTokenResponse;
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
   const encryptedAccessToken = encryptToken(tokens.access_token);
 

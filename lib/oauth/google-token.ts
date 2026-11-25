@@ -57,7 +57,7 @@ export async function refreshGoogleAccessToken(input: {
     if (response.status === 429 || response.status >= 500) {
       throw new Error("Google is temporarily unable to refresh this YouTube connection. Try publishing again shortly.");
     }
-    throw new UnrecoverableError("Google rejected the YouTube token refresh. Reconnect the channel before publishing.");
+    throw new GoogleCredentialError("Google rejected the YouTube token refresh. Reconnect the channel before publishing.");
   }
 
   if (
